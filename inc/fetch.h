@@ -19,6 +19,8 @@ class binary_loader {
 public:
   binary_loader(std::filesystem::path path, unsigned start_offset = 0)
       : byte_offset(start_offset) {
+    if (!std::filesystem::exists(path))
+      throw std::runtime_error("File does not exist");
     fd = open(path.c_str(), O_RDONLY);
     if (fd == -1)
       throw std::runtime_error("Could not open path");
@@ -33,11 +35,11 @@ public:
     munmap(ptr, size);
     close(fd);
   }
-  // TODO: overload* operator
   template <typename T> T *get_ptr(unsigned off) {
     return reinterpret_cast<T *>(static_cast<std::byte *>(ptr) - byte_offset) +
            off;
   };
   template <typename T> T at(unsigned off) { return *get_ptr<T>(off); }
+  template <typename T> T operator[](unsigned off) { return *get_ptr<T>(off); }
 };
 #endif
