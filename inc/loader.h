@@ -1,5 +1,5 @@
-#ifndef FETCH_H
-#define FETCH_H
+#ifndef LOADER_H
+#define LOADER_H
 #include <cstddef>
 #include <fcntl.h>
 #include <filesystem>
@@ -8,8 +8,6 @@
 #include <unistd.h>
 
 class binary_loader {
-  // TODO: hide the fact that this is templated from using classes, user should
-  // not call if it is 32 or 64 bit, can this be hidden?
   unsigned byte_offset;
   size_t size;
   int fd;
@@ -35,11 +33,11 @@ public:
     munmap(ptr, size);
     close(fd);
   }
-  template <typename T> T *get_ptr(unsigned off) {
-    return reinterpret_cast<T *>(static_cast<std::byte *>(ptr) - byte_offset) +
-           off;
+  template <typename T> T *get_ptr(uint64_t off) {
+    return reinterpret_cast<T *>(static_cast<std::byte *>(ptr) - byte_offset +
+                                 off);
   };
-  template <typename T> T at(unsigned off) { return *get_ptr<T>(off); }
-  template <typename T> T operator[](unsigned off) { return *get_ptr<T>(off); }
+  template <typename T> T at(uint64_t off) { return *get_ptr<T>(off); }
+  uint32_t operator[](uint64_t off) { return *get_ptr<uint32_t>(off); }
 };
 #endif
