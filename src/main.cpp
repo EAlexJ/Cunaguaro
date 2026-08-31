@@ -26,8 +26,6 @@ int main() {
     assert(idx != std::numeric_limits<size_t>::max() && "Illegal instruction");
     std::println("Decoded {}", instructions.at(idx).name);
     // Execute
-    assert(idx <= instruction_functions.size() &&
-           "Instruction functionality not implemented");
     instruction_functions.at(idx)(state, instr_word);
     state.registers[0] = 0; // Force x0 to 0
   }
