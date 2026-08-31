@@ -132,6 +132,10 @@ template <uint8_t bitpos, typename T> constexpr T sext(T val) {
   auto shamt = sizeof(T) * 8 - bitpos;
   return static_cast<T>(static_cast<signed_t>(val) << shamt >> shamt);
 }
+template <typename T, typename I> T sext(I init) {
+  return static_cast<T>(static_cast<std::make_signed_t<T>>(
+      static_cast<std::make_signed_t<I>>(init)));
+}
 constexpr reg_t rd(reg_t instr) { return bit_range<11, 7>(instr); }
 constexpr reg_t rs1(reg_t instr) { return bit_range<19, 15>(instr); }
 constexpr reg_t rs2(reg_t instr) { return bit_range<24, 20>(instr); }
@@ -235,119 +239,192 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
         // LB
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
-          // X[rd] = MEM[load_addr]
+          state.registers.at(rd(instr)) =
+              sext<reg_t>((state.mem.try_get<uint8_t>(load_addr)));
           state.PC += 4;
         },
         // LH
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
+          state.registers.at(rd(instr)) =
+              sext<reg_t>((state.mem.try_get<uint16_t>(load_addr)));
           state.PC += 4;
         },
         // LW
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
+          state.registers.at(rd(instr)) =
+              sext<reg_t>((state.mem.try_get<uint32_t>(load_addr)));
           state.PC += 4;
         },
         // LBU
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
+          state.registers.at(rd(instr)) = state.mem.try_get<uint8_t>(load_addr);
           state.PC += 4;
         },
         // LHU
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
+          state.registers.at(rd(instr)) =
+              state.mem.try_get<uint16_t>(load_addr);
           state.PC += 4;
         },
         // SB
         [](MachineState &state, const uint32_t instr) -> void {
           auto store_addr = rs1(instr) + s_imm(instr);
-          // MEM[store_addr] = X[rs2]
+          state.mem.try_get<uint8_t>(store_addr) =
+              static_cast<uint8_t>(state.registers.at(rs2(instr)));
           state.PC += 4;
         },
         // SH
         [](MachineState &state, const uint32_t instr) -> void {
           auto store_addr = rs1(instr) + s_imm(instr);
+          state.mem.try_get<uint16_t>(store_addr) =
+              static_cast<uint16_t>(state.registers.at(rs2(instr)));
           state.PC += 4;
         },
         // SW
         [](MachineState &state, const uint32_t instr) -> void {
           auto store_addr = rs1(instr) + s_imm(instr);
+          state.mem.try_get<uint32_t>(store_addr) =
+              static_cast<uint32_t>(state.registers.at(rs2(instr)));
           state.PC += 4;
         },
         // ADDI
         [](MachineState &state, const uint32_t instr) -> void {
+          state.registers.at(rd(instr)) =
+              state.registers.at(rs1(instr)) + i_imm(instr);
           state.PC += 4;
         },
         // SLTI
         [](MachineState &state, const uint32_t instr) -> void {
+          state.registers.at(rd(instr)) =
+              std::make_signed_t<reg_t>(state.registers.at(rs1(instr))) <
+              std::make_signed_t<reg_t>(i_imm(instr));
           state.PC += 4;
         },
         // SLTIU
         [](MachineState &state, const uint32_t instr) -> void {
+          state.registers.at(rd(instr)) =
+              state.registers.at(rs1(instr)) < i_imm(instr);
           state.PC += 4;
         },
         // XORI
         [](MachineState &state, const uint32_t instr) -> void {
+          state.registers.at(rd(instr)) =
+              state.registers.at(rs1(instr)) ^ i_imm(instr);
           state.PC += 4;
         },
         // ORI
         [](MachineState &state, const uint32_t instr) -> void {
+          state.registers.at(rd(instr)) =
+              state.registers.at(rs1(instr)) | i_imm(instr);
           state.PC += 4;
         },
         // ANDI
         [](MachineState &state, const uint32_t instr) -> void {
+          state.registers.at(rd(instr)) =
+              state.registers.at(rs1(instr)) & i_imm(instr);
           state.PC += 4;
         },
         // SLLI
         [](MachineState &state, const uint32_t instr) -> void {
+          state.registers.at(rd(instr)) = state.registers.at(rs1(instr))
+                                          << shamt(instr);
           state.PC += 4;
         },
         // SRLI
         [](MachineState &state, const uint32_t instr) -> void {
+          state.registers.at(rd(instr)) =
+              state.registers.at(rs1(instr)) >> shamt(instr);
           state.PC += 4;
         },
         // SRAI
         [](MachineState &state, const uint32_t instr) -> void {
+          state.registers.at(rd(instr)) = static_cast<reg_t>(
+              std::make_signed_t<reg_t>(state.registers.at(rs1(instr))) >>
+              shamt(instr));
           state.PC += 4;
         },
         // ADD
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = state.registers.at(rs1(instr));
+          auto _rs2 = state.registers.at(rs2(instr));
+          _rd = _rs1 + _rs2;
           state.PC += 4;
         },
         // SUB
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = state.registers.at(rs1(instr));
+          auto _rs2 = state.registers.at(rs2(instr));
+          _rd = _rs1 - _rs2;
           state.PC += 4;
         },
         // SLL
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = state.registers.at(rs1(instr));
+          auto _rs2 = state.registers.at(rs2(instr));
+          _rd = _rs1 << _rs2;
           state.PC += 4;
         },
         // SLT
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = std::make_signed_t<reg_t>(state.registers.at(rs1(instr)));
+          auto _rs2 = std::make_signed_t<reg_t>(state.registers.at(rs2(instr)));
+          _rd = _rs1 < _rs2;
           state.PC += 4;
         },
         // SLTU
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = state.registers.at(rs1(instr));
+          auto _rs2 = state.registers.at(rs2(instr));
+          _rd = _rs1 < _rs2;
           state.PC += 4;
         },
         // XOR
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = state.registers.at(rs1(instr));
+          auto _rs2 = state.registers.at(rs2(instr));
+          _rd = _rs1 ^ _rs2;
           state.PC += 4;
         },
         // SRL
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = state.registers.at(rs1(instr));
+          auto _rs2 = state.registers.at(rs2(instr));
+          _rd = _rs1 >> _rs2;
           state.PC += 4;
         },
         // SRA
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = std::make_signed_t<reg_t>(state.registers.at(rs1(instr)));
+          auto _rs2 = std::make_signed_t<reg_t>(state.registers.at(rs2(instr)));
+          _rd = static_cast<reg_t>(_rs1 >> _rs2);
           state.PC += 4;
         },
         // OR
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = state.registers.at(rs1(instr));
+          auto _rs2 = state.registers.at(rs2(instr));
+          _rd = _rs1 | _rs2;
           state.PC += 4;
         },
         // AND
         [](MachineState &state, const uint32_t instr) -> void {
+          auto &_rd = state.registers.at(rd(instr));
+          auto _rs1 = state.registers.at(rs1(instr));
+          auto _rs2 = state.registers.at(rs2(instr));
+          _rd = _rs1 & _rs2;
           state.PC += 4;
         },
         // FENCE

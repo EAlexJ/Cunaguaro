@@ -11,7 +11,7 @@ template <size_t size> struct simple_mem {
     if (addr + offset > backing.size() || addr - offset < 0)
       throw new std::out_of_range("Trying to access simple_mem out of range");
     else
-      return *static_cast<T *>(backing.data() + (addr - offset));
+      return *reinterpret_cast<T *>(backing.data() + (addr - offset));
   }
   size_t offset;
 };
