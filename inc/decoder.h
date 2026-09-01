@@ -2,7 +2,7 @@
 #define DECODER_h
 #include "instructions.h"
 #include "machine.h"
-#include <limits>
+#include "traps.h"
 #include <ranges>
 struct decoder {
   static size_t decode(const reg_t instr) {
@@ -11,7 +11,7 @@ struct decoder {
       if ((instr & entry.mask) == entry.value)
         return static_cast<size_t>(index);
     }
-    return std::numeric_limits<size_t>::max();
+    throw rv_traps::Traps::Illegal_instruction;
   }
 };
 #endif

@@ -2,6 +2,7 @@
 #include "instructions.h"
 #include "loader.h"
 #include "machine.h"
+#include "traps.h"
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -19,15 +20,18 @@ int main() {
   auto &PC = state.PC;
   bool terminate = false;
   while (!terminate) {
-    // Fetch
-    uint32_t instr_word = loaded_bin[PC];
-    // Decode
-    auto idx = decoder::decode(instr_word);
-    assert(idx != std::numeric_limits<size_t>::max() && "Illegal instruction");
-    std::println("Decoded {}", instructions.at(idx).name);
-    // Execute
-    instruction_functions.at(idx)(state, instr_word);
-    state.registers[0] = 0; // Force x0 to 0
+    try {
+      // Fetch
+      uint32_t instr_word = loaded_bin[PC];
+      // Decode
+      auto idx = decoder::decode(instr_word);
+      // Execute
+      instruction_functions.at(idx)(state, instr_word);
+      state.registers[0] = 0; // Force x0 to 0
+    } catch (rv_traps::Traps &trap) {
+      std::println("Terminating due to trap: {}", rv_traps::get_trap_str(trap));
+      std::terminate();
+    }
   }
 
   return 0;

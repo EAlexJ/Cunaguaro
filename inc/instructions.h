@@ -2,9 +2,11 @@
 #define DECODER_H
 
 #include "machine.h"
+#include "traps.h"
 #include <array>
 #include <bitset>
 #include <cstdint>
+#include <exception>
 #include <string>
 #include <type_traits>
 struct Instruction_Description {
@@ -12,109 +14,89 @@ struct Instruction_Description {
   const uint32_t mask;
   const std::string name;
 };
-constexpr unsigned instruction_count = 49;
+constexpr unsigned instruction_count = 40;
+constexpr unsigned IALIGN = 32;
 constexpr std::array<const Instruction_Description, instruction_count>
-    instructions{{
-        /* entries are: size, valid value, valid mask, function ptr */
-        {0b00000000000000000000000000110111, 0b00000000000000000000000001111111,
-         "LUI"},
-        {0b00000000000000000000000000010111, 0b00000000000000000000000001111111,
-         "AUIPC"},
-        {0b00000000000000000000000001101111, 0b00000000000000000000000001111111,
-         "JAL"},
-        {0b00000000000000000000000001100111, 0b00000000000000000111000001111111,
-         "JALR"},
-        {0b00000000000000000000000001100011, 0b00000000000000000111000001111111,
-         "BEQ"},
-        {0b00000000000000000001000001100011, 0b00000000000000000111000001111111,
-         "BNE"},
-        {0b00000000000000000100000001100011, 0b00000000000000000111000001111111,
-         "BLT"},
-        {0b00000000000000000101000001100011, 0b00000000000000000111000001111111,
-         "BGE"},
-        {0b00000000000000000110000001100011, 0b00000000000000000111000001111111,
-         "BLTU"},
-        {0b00000000000000000111000001100011, 0b00000000000000000111000001111111,
-         "BGEU"},
-        {0b00000000000000000000000000000011, 0b00000000000000000111000001111111,
-         "LB"},
-        {0b00000000000000000001000000000011, 0b00000000000000000111000001111111,
-         "LH"},
-        {0b00000000000000000010000000000011, 0b00000000000000000111000001111111,
-         "LW"},
-        {0b00000000000000000100000000000011, 0b00000000000000000111000001111111,
-         "LBU"},
-        {0b00000000000000000101000000000011, 0b00000000000000000111000001111111,
-         "LHU"},
-        {0b00000000000000000000000000100011, 0b00000000000000000111000001111111,
-         "SB"},
-        {0b00000000000000000001000000100011, 0b00000000000000000111000001111111,
-         "SH"},
-        {0b00000000000000000010000000100011, 0b00000000000000000111000001111111,
-         "SW"},
-        {0b00000000000000000000000000010011, 0b00000000000000000111000001111111,
-         "ADDI"},
-        {0b00000000000000000010000000010011, 0b00000000000000000111000001111111,
-         "SLTI"},
-        {0b00000000000000000011000000010011, 0b00000000000000000111000001111111,
-         "SLTIU"},
-        {0b00000000000000000100000000010011, 0b00000000000000000111000001111111,
-         "XORI"},
-        {0b00000000000000000110000000010011, 0b00000000000000000111000001111111,
-         "ORI"},
-        {0b00000000000000000111000000010011, 0b00000000000000000111000001111111,
-         "ANDI"},
-        {0b00000000000000000001000000010011, 0b11111110000000000111000001111111,
-         "SLLI"},
-        {0b00000000000000000101000000010011, 0b11111110000000000111000001111111,
-         "SRLI"},
-        {0b01000000000000000101000000010011, 0b11111110000000000111000001111111,
-         "SRAI"},
-        {0b00000000000000000000000000110011, 0b11111110000000000111000001111111,
-         "ADD"},
-        {0b01000000000000000000000000110011, 0b11111110000000000111000001111111,
-         "SUB"},
-        {0b00000000000000000001000000110011, 0b11111110000000000111000001111111,
-         "SLL"},
-        {0b00000000000000000010000000110011, 0b11111110000000000111000001111111,
-         "SLT"},
-        {0b00000000000000000011000000110011, 0b11111110000000000111000001111111,
-         "SLTU"},
-        {0b00000000000000000100000000110011, 0b11111110000000000111000001111111,
-         "XOR"},
-        {0b00000000000000000101000000110011, 0b11111110000000000111000001111111,
-         "SRL"},
-        {0b01000000000000000101000000110011, 0b11111110000000000111000001111111,
-         "SRA"},
-        {0b00000000000000000110000000110011, 0b11111110000000000111000001111111,
-         "OR"},
-        {0b00000000000000000111000000110011, 0b11111110000000000111000001111111,
-         "AND"},
-        {0b00000000000000000000000000001111, 0b00000000000000000111000001111111,
-         "FENCE"},
-        {0b00000000000000000000000001110011, 0b11111111111111111111111111111111,
-         "ECALL"},
-        {0b00000000000100000000000001110011, 0b11111111111111111111111111111111,
-         "EBREAK"},
-        {0b00110000001000000000000001110011, 0b11111111111111111111111111111111,
-         "MRET"},
-        {0b00010000010100000000000001110011, 0b11111111111111111111111111111111,
-         "WFI"},
-        {0b00000000000000000001000001110011, 0b00000000000000000111000001111111,
-         "CSRRW"},
-        {0b00000000000000000010000001110011, 0b00000000000000000111000001111111,
-         "CSRRS"},
-        {0b00000000000000000011000001110011, 0b00000000000000000111000001111111,
-         "CSRRC"},
-        {0b00000000000000000101000001110011, 0b00000000000000000111000001111111,
-         "CSRRWI"},
-        {0b00000000000000000110000001110011, 0b00000000000000000111000001111111,
-         "CSRRSI"},
-        {0b00000000000000000111000001110011, 0b00000000000000000111000001111111,
-         "CSRRCI"},
-        {0b00000000000000000001000000001111, 0b00000000000000000111000001111111,
-         "FENCE_I"},
-    }};
+    instructions{{{0b00000000000000000000000000110111,
+                   0b00000000000000000000000001111111, "LUI"},
+                  {0b00000000000000000000000000010111,
+                   0b00000000000000000000000001111111, "AUIPC"},
+                  {0b00000000000000000000000001101111,
+                   0b00000000000000000000000001111111, "JAL"},
+                  {0b00000000000000000000000001100111,
+                   0b00000000000000000111000001111111, "JALR"},
+                  {0b00000000000000000000000001100011,
+                   0b00000000000000000111000001111111, "BEQ"},
+                  {0b00000000000000000001000001100011,
+                   0b00000000000000000111000001111111, "BNE"},
+                  {0b00000000000000000100000001100011,
+                   0b00000000000000000111000001111111, "BLT"},
+                  {0b00000000000000000101000001100011,
+                   0b00000000000000000111000001111111, "BGE"},
+                  {0b00000000000000000110000001100011,
+                   0b00000000000000000111000001111111, "BLTU"},
+                  {0b00000000000000000111000001100011,
+                   0b00000000000000000111000001111111, "BGEU"},
+                  {0b00000000000000000000000000000011,
+                   0b00000000000000000111000001111111, "LB"},
+                  {0b00000000000000000001000000000011,
+                   0b00000000000000000111000001111111, "LH"},
+                  {0b00000000000000000010000000000011,
+                   0b00000000000000000111000001111111, "LW"},
+                  {0b00000000000000000100000000000011,
+                   0b00000000000000000111000001111111, "LBU"},
+                  {0b00000000000000000101000000000011,
+                   0b00000000000000000111000001111111, "LHU"},
+                  {0b00000000000000000000000000100011,
+                   0b00000000000000000111000001111111, "SB"},
+                  {0b00000000000000000001000000100011,
+                   0b00000000000000000111000001111111, "SH"},
+                  {0b00000000000000000010000000100011,
+                   0b00000000000000000111000001111111, "SW"},
+                  {0b00000000000000000000000000010011,
+                   0b00000000000000000111000001111111, "ADDI"},
+                  {0b00000000000000000010000000010011,
+                   0b00000000000000000111000001111111, "SLTI"},
+                  {0b00000000000000000011000000010011,
+                   0b00000000000000000111000001111111, "SLTIU"},
+                  {0b00000000000000000100000000010011,
+                   0b00000000000000000111000001111111, "XORI"},
+                  {0b00000000000000000110000000010011,
+                   0b00000000000000000111000001111111, "ORI"},
+                  {0b00000000000000000111000000010011,
+                   0b00000000000000000111000001111111, "ANDI"},
+                  {0b00000000000000000001000000010011,
+                   0b11111110000000000111000001111111, "SLLI"},
+                  {0b00000000000000000101000000010011,
+                   0b11111110000000000111000001111111, "SRLI"},
+                  {0b01000000000000000101000000010011,
+                   0b11111110000000000111000001111111, "SRAI"},
+                  {0b00000000000000000000000000110011,
+                   0b11111110000000000111000001111111, "ADD"},
+                  {0b01000000000000000000000000110011,
+                   0b11111110000000000111000001111111, "SUB"},
+                  {0b00000000000000000001000000110011,
+                   0b11111110000000000111000001111111, "SLL"},
+                  {0b00000000000000000010000000110011,
+                   0b11111110000000000111000001111111, "SLT"},
+                  {0b00000000000000000011000000110011,
+                   0b11111110000000000111000001111111, "SLTU"},
+                  {0b00000000000000000100000000110011,
+                   0b11111110000000000111000001111111, "XOR"},
+                  {0b00000000000000000101000000110011,
+                   0b11111110000000000111000001111111, "SRL"},
+                  {0b01000000000000000101000000110011,
+                   0b11111110000000000111000001111111, "SRA"},
+                  {0b00000000000000000110000000110011,
+                   0b11111110000000000111000001111111, "OR"},
+                  {0b00000000000000000111000000110011,
+                   0b11111110000000000111000001111111, "AND"},
+                  {0b00000000000000000000000000001111,
+                   0b00000000000000000111000001111111, "FENCE"},
+                  {0b00000000000000000000000001110011,
+                   0b11111111111111111111111111111111, "ECALL"},
+                  {0b00000000000100000000000001110011,
+                   0b11111111111111111111111111111111, "EBREAK"}}};
 
 template <uint32_t upper, uint32_t lower, typename T>
   requires std::is_unsigned_v<T>
@@ -159,7 +141,8 @@ constexpr reg_t j_imm(reg_t instr) {
 };
 constexpr reg_t shamt(reg_t instr) { return bit_range<24, 20>(instr); }
 
-constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
+constexpr std::array<void (*)(MachineState &, const uint32_t instr),
+                     instruction_count>
     instruction_functions{
         // LUI
         [](MachineState &state, const uint32_t instr) -> void {
@@ -173,39 +156,56 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
         },
         // JAL
         [](MachineState &state, const uint32_t instr) -> void {
+          reg_t target_addr = j_imm(instr) + state.PC;
+          if (target_addr % (IALIGN / 8))
+            throw rv_traps::Traps::Instruction_address_misaligned;
           state.registers.at(rd(instr)) = state.PC += 4;
-          state.PC = j_imm(instr) + state.PC;
+          state.PC = target_addr;
         },
         // JALR
         [](MachineState &state, const uint32_t instr) -> void {
+          reg_t target_addr =
+              i_imm(instr) + state.registers.at(rs1(instr)) & ~1u;
+          if (target_addr % (IALIGN / 8))
+            throw rv_traps::Traps::Instruction_address_misaligned;
           state.registers.at(rd(instr)) = state.PC + 4;
-          state.PC = i_imm(instr) + state.registers.at(rs1(instr)) & ~1u;
+          state.PC = target_addr;
         },
         // BEQ
         [](MachineState &state, const uint32_t instr) -> void {
           const auto _rs1 = state.registers.at(rs1(instr));
           const auto _rs2 = state.registers.at(rs2(instr));
-          if (_rs1 == _rs2)
-            state.PC = state.PC + b_imm(instr);
-          else
+          if (_rs1 == _rs2) {
+            const auto target_addr = state.PC + b_imm(instr);
+            if (target_addr % (IALIGN / 8))
+              throw rv_traps::Traps::Instruction_address_misaligned;
+            state.PC = target_addr;
+          } else
             state.PC += 4;
         },
         // BNE
         [](MachineState &state, const uint32_t instr) -> void {
           const auto _rs1 = state.registers.at(rs1(instr));
           const auto _rs2 = state.registers.at(rs2(instr));
-          if (_rs1 != _rs2)
-            state.PC = state.PC + b_imm(instr);
-          else
+          if (_rs1 != _rs2) {
+            const auto target_addr = state.PC + b_imm(instr);
+            if (target_addr % (IALIGN / 8))
+              throw rv_traps::Traps::Instruction_address_misaligned;
+            state.PC = target_addr;
+          } else
             state.PC += 4;
         },
         // BLT
         [](MachineState &state, const uint32_t instr) -> void {
           const auto _rs1 = state.registers.at(rs1(instr));
           const auto _rs2 = state.registers.at(rs2(instr));
-          if (std::make_signed_t<reg_t>(_rs1) < std::make_signed_t<reg_t>(_rs2))
-            state.PC = state.PC + b_imm(instr);
-          else
+          if (std::make_signed_t<reg_t>(_rs1) <
+              std::make_signed_t<reg_t>(_rs2)) {
+            const auto target_addr = state.PC + b_imm(instr);
+            if (target_addr % (IALIGN / 8))
+              throw rv_traps::Traps::Instruction_address_misaligned;
+            state.PC = target_addr;
+          } else
             state.PC += 4;
         },
         // BGE
@@ -213,27 +213,36 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
           const auto _rs1 = state.registers.at(rs1(instr));
           const auto _rs2 = state.registers.at(rs2(instr));
           if (std::make_signed_t<reg_t>(_rs1) >=
-              std::make_signed_t<reg_t>(_rs2))
-            state.PC = state.PC + b_imm(instr);
-          else
+              std::make_signed_t<reg_t>(_rs2)) {
+            const auto target_addr = state.PC + b_imm(instr);
+            if (target_addr % (IALIGN / 8))
+              throw rv_traps::Traps::Instruction_address_misaligned;
+            state.PC = target_addr;
+          } else
             state.PC += 4;
         },
         // BLTU
         [](MachineState &state, const uint32_t instr) -> void {
           const auto _rs1 = state.registers.at(rs1(instr));
           const auto _rs2 = state.registers.at(rs2(instr));
-          if (_rs1 < _rs2)
-            state.PC = state.PC + b_imm(instr);
-          else
+          if (_rs1 < _rs2) {
+            const auto target_addr = state.PC + b_imm(instr);
+            if (target_addr % (IALIGN / 8))
+              throw rv_traps::Traps::Instruction_address_misaligned;
+            state.PC = target_addr;
+          } else
             state.PC += 4;
         },
         // BGEU
         [](MachineState &state, const uint32_t instr) -> void {
           const auto _rs1 = state.registers.at(rs1(instr));
           const auto _rs2 = state.registers.at(rs2(instr));
-          if (_rs1 >= _rs2)
-            state.PC = state.PC + b_imm(instr);
-          else
+          if (_rs1 >= _rs2) {
+            const auto target_addr = state.PC + b_imm(instr);
+            if (target_addr % (IALIGN / 8))
+              throw rv_traps::Traps::Instruction_address_misaligned;
+            state.PC = target_addr;
+          } else
             state.PC += 4;
         },
         // LB
@@ -246,6 +255,8 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
         // LH
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
+          if (load_addr % 2)
+            throw rv_traps::Traps::Load_address_misaligned;
           state.registers.at(rd(instr)) =
               sext<reg_t>((state.mem.try_get<uint16_t>(load_addr)));
           state.PC += 4;
@@ -253,6 +264,8 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
         // LW
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
+          if (load_addr % 4)
+            throw rv_traps::Traps::Load_address_misaligned;
           state.registers.at(rd(instr)) =
               sext<reg_t>((state.mem.try_get<uint32_t>(load_addr)));
           state.PC += 4;
@@ -266,6 +279,8 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
         // LHU
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
+          if (load_addr % 2)
+            throw rv_traps::Traps::Load_address_misaligned;
           state.registers.at(rd(instr)) =
               state.mem.try_get<uint16_t>(load_addr);
           state.PC += 4;
@@ -280,6 +295,8 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
         // SH
         [](MachineState &state, const uint32_t instr) -> void {
           auto store_addr = rs1(instr) + s_imm(instr);
+          if (store_addr % 2)
+            throw rv_traps::Traps::Store_AMO_address_misaligned;
           state.mem.try_get<uint16_t>(store_addr) =
               static_cast<uint16_t>(state.registers.at(rs2(instr)));
           state.PC += 4;
@@ -287,6 +304,8 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
         // SW
         [](MachineState &state, const uint32_t instr) -> void {
           auto store_addr = rs1(instr) + s_imm(instr);
+          if (store_addr % 4)
+            throw rv_traps::Traps::Store_AMO_address_misaligned;
           state.mem.try_get<uint32_t>(store_addr) =
               static_cast<uint32_t>(state.registers.at(rs2(instr)));
           state.PC += 4;
@@ -428,51 +447,15 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr), 49>
           state.PC += 4;
         },
         // FENCE
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
+        [](MachineState &state, const uint32_t) -> void { state.PC += 4; },
         // ECALL
-        [](MachineState &state, const uint32_t instr) -> void {
+        [](MachineState &state, const uint32_t) -> void {
+          throw rv_traps::Traps::Environment_call_from_M_mode;
           state.PC += 4;
         },
         // EBREAK
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
-        // MRET
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
-        // WFI
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
-        // CSRRW
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
-        // CSRRS
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
-        // CSRRC
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
-        // CSRRWI
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
-        // CSRRSI
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
-        // CSRRCI
-        [](MachineState &state, const uint32_t instr) -> void {
-          state.PC += 4;
-        },
-        // FENCE_I
-        [](MachineState &state, const uint32_t instr) -> void {
+        [](MachineState &state, const uint32_t) -> void {
+          throw rv_traps::Traps::Breakpoint;
           state.PC += 4;
         },
     };
