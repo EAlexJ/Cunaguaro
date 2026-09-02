@@ -6,7 +6,6 @@
 #include <array>
 #include <bitset>
 #include <cstdint>
-#include <exception>
 #include <string>
 #include <type_traits>
 struct Instruction_Description {

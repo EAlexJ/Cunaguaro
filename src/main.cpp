@@ -6,8 +6,8 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <filesystem>
-#include <limits>
 #include <print>
 
 int main() {
