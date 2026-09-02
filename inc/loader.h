@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-class binary_loader {
+class BinaryLoader {
   unsigned byte_offset;
   size_t size;
   int fd;
@@ -15,7 +15,7 @@ class binary_loader {
 
   // TODO: does a singleton make sense here?
 public:
-  binary_loader(std::filesystem::path path, unsigned start_offset = 0)
+  BinaryLoader(std::filesystem::path path, unsigned start_offset = 0)
       : byte_offset(start_offset) {
     if (!std::filesystem::exists(path))
       throw std::runtime_error("File does not exist");
@@ -28,8 +28,8 @@ public:
     size = static_cast<const size_t>(my_stat.st_size);
     ptr = mmap(0, size, PROT_READ, MAP_FILE | MAP_PRIVATE, fd, 0);
   }
-  binary_loader(binary_loader &) = delete;
-  ~binary_loader() {
+  BinaryLoader(BinaryLoader &) = delete;
+  ~BinaryLoader() {
     munmap(ptr, size);
     close(fd);
   }

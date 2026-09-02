@@ -8,14 +8,14 @@
 #include <cstdint>
 #include <string>
 #include <type_traits>
-struct Instruction_Description {
+struct InstructionDescription {
   const uint32_t value;
   const uint32_t mask;
   const std::string name;
 };
 constexpr unsigned instruction_count = 40;
 constexpr unsigned IALIGN = 32;
-constexpr std::array<const Instruction_Description, instruction_count>
+constexpr std::array<const InstructionDescription, instruction_count>
     instructions{{{0b00000000000000000000000000110111,
                    0b00000000000000000000000001111111, "LUI"},
                   {0b00000000000000000000000000010111,

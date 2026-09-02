@@ -14,7 +14,7 @@ int main() {
   constexpr auto example_file = "/Users/alex/Code/ISS/fw/hello.bin";
 
   std::filesystem::path path{example_file};
-  auto loaded_bin = binary_loader(path, example_file_offset);
+  auto loaded_bin = BinaryLoader(path, example_file_offset);
 
   MachineState state;
   auto &PC = state.PC;
@@ -24,7 +24,7 @@ int main() {
       // Fetch
       uint32_t instr_word = loaded_bin[PC];
       // Decode
-      auto idx = decoder::decode(instr_word);
+      auto idx = Decoder::decode(instr_word);
       // Execute
       instruction_functions.at(idx)(state, instr_word);
       state.registers[0] = 0; // Force x0 to 0

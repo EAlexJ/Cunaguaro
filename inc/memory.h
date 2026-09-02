@@ -4,13 +4,13 @@
 #include <array>
 #include <cstddef>
 #include <stdexcept>
-template <size_t size> struct simple_mem {
+template <size_t size> struct SimpleMem {
   std::array<std::byte, size> backing{};
-  simple_mem<size>(const unsigned off) : offset(off){};
+  SimpleMem<size>(const unsigned off) : offset(off){};
   template <typename T> constexpr T &try_get(size_t addr) {
     [[unlikely]]
     if (addr + offset > backing.size() || addr - offset < 0)
-      throw std::out_of_range("Trying to access simple_mem out of range");
+      throw std::out_of_range("Trying to access SimpleMem out of range");
     else
       return *reinterpret_cast<T *>(backing.data() + (addr - offset));
   }

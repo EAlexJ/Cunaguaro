@@ -4,7 +4,7 @@
 #include "machine.h"
 #include "traps.h"
 #include <ranges>
-struct decoder {
+struct Decoder {
   static size_t decode(const reg_t instr) {
     for (const auto &[index, entry] :
          std::views::zip(std::views::iota(0), instructions)) {
