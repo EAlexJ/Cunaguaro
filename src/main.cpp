@@ -10,19 +10,35 @@
 #include <filesystem>
 #include <print>
 
+class LoadedRiscVFile : BinaryLoader {
+public:
+  LoadedRiscVFile(std::filesystem::path path, unsigned start_offset = 0)
+      : BinaryLoader(path, start_offset) {}
+  template <typename T>
+  [[nodiscard]]
+  constexpr T fetch(size_t addr) {
+    try {
+      return this->at<T>(addr);
+    } catch (std::out_of_range) {
+      throw rv_traps::Traps::Instruction_access_fault;
+    }
+  }
+};
+
 int main() {
   constexpr auto example_file = "/Users/alex/Code/ISS/fw/hello.bin";
-
   std::filesystem::path path{example_file};
-  auto loaded_bin = BinaryLoader(path, example_file_offset);
+
+  auto loaded_bin = LoadedRiscVFile(path, example_file_offset);
 
   MachineState state;
   auto &PC = state.PC;
   bool terminate = false;
+
   while (!terminate) {
     try {
       // Fetch
-      uint32_t instr_word = loaded_bin[PC];
+      uint32_t instr_word = loaded_bin.fetch<uint32_t>(PC);
       // Decode
       auto idx = Decoder::decode(instr_word);
       // Execute

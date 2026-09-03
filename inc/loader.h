@@ -1,22 +1,42 @@
 #ifndef LOADER_H
 #define LOADER_H
 #include <cstddef>
+#include <cstring>
 #include <fcntl.h>
 #include <filesystem>
+#include <span>
+#include <stdexcept>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <type_traits>
 #include <unistd.h>
 
-class BinaryLoader {
-  unsigned byte_offset;
+struct BinaryView {
+  std::span<const std::byte> view;
+  uint64_t _base_offset;
+  BinaryView() {};
+  BinaryView(void *ptr, size_t size, uint64_t base_offset)
+      : view(static_cast<const std::byte *>(ptr), size),
+        _base_offset(base_offset) {}
+
+  template <typename T>
+    requires std::is_trivial_v<T>
+  [[nodiscard]]
+  T at(uint64_t addr) {
+    auto file_offset = addr - _base_offset;
+    if (addr < _base_offset || file_offset + sizeof(T) > view.size())
+      throw std::out_of_range("");
+    T val;
+    std::memcpy(&val, view.data() + file_offset, sizeof(T));
+    return val;
+  }
+};
+
+struct MemoryMappedFile {
   size_t size;
   int fd;
   void *ptr;
-
-  // TODO: does a singleton make sense here?
-public:
-  BinaryLoader(std::filesystem::path path, unsigned start_offset = 0)
-      : byte_offset(start_offset) {
+  MemoryMappedFile(std::filesystem::path path) {
     if (!std::filesystem::exists(path))
       throw std::runtime_error("File does not exist");
     fd = open(path.c_str(), O_RDONLY);
@@ -28,16 +48,26 @@ public:
     size = static_cast<const size_t>(my_stat.st_size);
     ptr = mmap(0, size, PROT_READ, MAP_FILE | MAP_PRIVATE, fd, 0);
   }
-  BinaryLoader(BinaryLoader &) = delete;
-  ~BinaryLoader() {
+  ~MemoryMappedFile() {
     munmap(ptr, size);
     close(fd);
   }
-  template <typename T> T *get_ptr(uint64_t off) {
-    return reinterpret_cast<T *>(static_cast<std::byte *>(ptr) - byte_offset +
-                                 off);
-  };
-  template <typename T> T at(uint64_t off) { return *get_ptr<T>(off); }
-  uint32_t operator[](uint64_t off) { return *get_ptr<uint32_t>(off); }
 };
+
+class BinaryLoader {
+  MemoryMappedFile file;
+  BinaryView view;
+
+public:
+  BinaryLoader(std::filesystem::path path, unsigned start_offset)
+      : file(path), view(file.ptr, file.size, start_offset) {}
+
+  template <typename T>
+    requires std::is_trivially_destructible_v<T>
+  [[nodiscard]]
+  T at(uint64_t addr) {
+    return view.at<T>(addr);
+  };
+};
+
 #endif
