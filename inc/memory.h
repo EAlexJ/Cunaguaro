@@ -1,18 +1,33 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 #include <array>
+#include <cassert>
 #include <cstddef>
+#include <cstring>
 #include <stdexcept>
-template <size_t size> struct SimpleMem {
+#include <type_traits>
+template <size_t size> class SimpleMem {
   std::array<std::byte, size> backing{};
-  SimpleMem<size>(const unsigned off) : offset(off){};
-  template <typename T> constexpr T &try_get(size_t addr) {
-    [[unlikely]]
-    if (addr + offset > backing.size() || addr - offset < 0)
-      throw std::out_of_range("Trying to access SimpleMem out of range");
-    else
-      return *reinterpret_cast<T *>(backing.data() + (addr - offset));
-  }
   size_t offset;
+
+public:
+  SimpleMem<size>(const unsigned off) : offset(off){};
+
+  template <typename T>
+    requires std::is_trivially_copyable_v<T>
+  [[nodiscard]] T read(uint64_t addr) const {
+    T val;
+    if (addr < offset || addr + offset > backing.size())
+      throw std::out_of_range("Trying to read SimpleMem out of bounds");
+    std::memcpy(&val, backing.data() + addr, sizeof(T));
+    return val;
+  }
+  template <typename T>
+    requires std::is_trivially_copyable_v<T>
+  void write(uint64_t addr, T val) {
+    if (addr < offset || addr + offset > backing.size())
+      throw std::out_of_range("Trying to write SimpleMem out of bounds");
+    std::memcpy(backing.data() + addr, &val, sizeof(T));
+  }
 };
 #endif

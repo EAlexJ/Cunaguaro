@@ -248,7 +248,7 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
           state.registers.at(rd(instr)) =
-              sext<reg_t>((state.mem.try_get<uint8_t>(load_addr)));
+              sext<reg_t>((state.mem.read<uint8_t>(load_addr)));
           state.PC += 4;
         },
         // LH
@@ -257,7 +257,7 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
           if (load_addr % 2)
             throw rv_traps::Traps::Load_address_misaligned;
           state.registers.at(rd(instr)) =
-              sext<reg_t>((state.mem.try_get<uint16_t>(load_addr)));
+              sext<reg_t>((state.mem.read<uint16_t>(load_addr)));
           state.PC += 4;
         },
         // LW
@@ -266,13 +266,13 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
           if (load_addr % 4)
             throw rv_traps::Traps::Load_address_misaligned;
           state.registers.at(rd(instr)) =
-              sext<reg_t>((state.mem.try_get<uint32_t>(load_addr)));
+              sext<reg_t>((state.mem.read<uint32_t>(load_addr)));
           state.PC += 4;
         },
         // LBU
         [](MachineState &state, const uint32_t instr) -> void {
           auto load_addr = rs1(instr) + i_imm(instr);
-          state.registers.at(rd(instr)) = state.mem.try_get<uint8_t>(load_addr);
+          state.registers.at(rd(instr)) = state.mem.read<uint8_t>(load_addr);
           state.PC += 4;
         },
         // LHU
@@ -280,15 +280,14 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
           auto load_addr = rs1(instr) + i_imm(instr);
           if (load_addr % 2)
             throw rv_traps::Traps::Load_address_misaligned;
-          state.registers.at(rd(instr)) =
-              state.mem.try_get<uint16_t>(load_addr);
+          state.registers.at(rd(instr)) = state.mem.read<uint16_t>(load_addr);
           state.PC += 4;
         },
         // SB
         [](MachineState &state, const uint32_t instr) -> void {
           auto store_addr = rs1(instr) + s_imm(instr);
-          state.mem.try_get<uint8_t>(store_addr) =
-              static_cast<uint8_t>(state.registers.at(rs2(instr)));
+          state.mem.write<uint8_t>(
+              store_addr, static_cast<uint8_t>(state.registers.at(rs2(instr))));
           state.PC += 4;
         },
         // SH
@@ -296,8 +295,9 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
           auto store_addr = rs1(instr) + s_imm(instr);
           if (store_addr % 2)
             throw rv_traps::Traps::Store_AMO_address_misaligned;
-          state.mem.try_get<uint16_t>(store_addr) =
-              static_cast<uint16_t>(state.registers.at(rs2(instr)));
+          state.mem.write<uint16_t>(
+              store_addr,
+              static_cast<uint16_t>(state.registers.at(rs2(instr))));
           state.PC += 4;
         },
         // SW
@@ -305,8 +305,9 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
           auto store_addr = rs1(instr) + s_imm(instr);
           if (store_addr % 4)
             throw rv_traps::Traps::Store_AMO_address_misaligned;
-          state.mem.try_get<uint32_t>(store_addr) =
-              static_cast<uint32_t>(state.registers.at(rs2(instr)));
+          state.mem.write<uint32_t>(
+              store_addr,
+              static_cast<uint32_t>(state.registers.at(rs2(instr))));
           state.PC += 4;
         },
         // ADDI
