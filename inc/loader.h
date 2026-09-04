@@ -48,6 +48,8 @@ struct MemoryMappedFile {
     size = static_cast<const size_t>(my_stat.st_size);
     ptr = mmap(0, size, PROT_READ, MAP_FILE | MAP_PRIVATE, fd, 0);
   }
+  MemoryMappedFile(const MemoryMappedFile &) = delete;
+  MemoryMappedFile(const MemoryMappedFile &&) = delete;
   ~MemoryMappedFile() {
     munmap(ptr, size);
     close(fd);
