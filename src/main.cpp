@@ -25,10 +25,12 @@ public:
   }
 };
 
-int main() {
-  constexpr auto example_file = "/Users/alex/Code/ISS/fw/hello.bin";
-  std::filesystem::path path{example_file};
-
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    std::println("Requires path to binary as second argument");
+    return 1;
+  }
+  std::filesystem::path path{argv[1]};
   auto loaded_bin = LoadedRiscVFile(path, example_file_offset);
 
   MachineState state;
