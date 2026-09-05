@@ -155,7 +155,7 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
         },
         // JAL
         [](MachineState &state, const uint32_t instr) -> void {
-          reg_t target_addr = j_imm(instr) + state.PC;
+          reg_t target_addr = sext<20>(j_imm(instr)) + state.PC;
           if (target_addr % (IALIGN / 8))
             throw rv_traps::Traps::Instruction_address_misaligned;
           state.registers.at(rd(instr)) = state.PC += 4;
@@ -164,7 +164,7 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
         // JALR
         [](MachineState &state, const uint32_t instr) -> void {
           reg_t target_addr =
-              i_imm(instr) + state.registers.at(rs1(instr)) & ~1u;
+              sext<12>(i_imm(instr)) + state.registers.at(rs1(instr)) & ~1u;
           if (target_addr % (IALIGN / 8))
             throw rv_traps::Traps::Instruction_address_misaligned;
           state.registers.at(rd(instr)) = state.PC + 4;
@@ -246,14 +246,14 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
         },
         // LB
         [](MachineState &state, const uint32_t instr) -> void {
-          auto load_addr = rs1(instr) + i_imm(instr);
+          auto load_addr = state.registers.at(rs1(instr)) + i_imm(instr);
           state.registers.at(rd(instr)) =
               sext<reg_t>((state.mem.read<uint8_t>(load_addr)));
           state.PC += 4;
         },
         // LH
         [](MachineState &state, const uint32_t instr) -> void {
-          auto load_addr = rs1(instr) + i_imm(instr);
+          auto load_addr = state.registers.at(rs1(instr)) + i_imm(instr);
           if (load_addr % 2)
             throw rv_traps::Traps::Load_address_misaligned;
           state.registers.at(rd(instr)) =
@@ -262,7 +262,7 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
         },
         // LW
         [](MachineState &state, const uint32_t instr) -> void {
-          auto load_addr = rs1(instr) + i_imm(instr);
+          auto load_addr = state.registers.at(rs1(instr)) + i_imm(instr);
           if (load_addr % 4)
             throw rv_traps::Traps::Load_address_misaligned;
           state.registers.at(rd(instr)) =
@@ -271,13 +271,13 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
         },
         // LBU
         [](MachineState &state, const uint32_t instr) -> void {
-          auto load_addr = rs1(instr) + i_imm(instr);
+          auto load_addr = state.registers.at(rs1(instr)) + i_imm(instr);
           state.registers.at(rd(instr)) = state.mem.read<uint8_t>(load_addr);
           state.PC += 4;
         },
         // LHU
         [](MachineState &state, const uint32_t instr) -> void {
-          auto load_addr = rs1(instr) + i_imm(instr);
+          auto load_addr = state.registers.at(rs1(instr)) + i_imm(instr);
           if (load_addr % 2)
             throw rv_traps::Traps::Load_address_misaligned;
           state.registers.at(rd(instr)) = state.mem.read<uint16_t>(load_addr);
@@ -285,14 +285,14 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
         },
         // SB
         [](MachineState &state, const uint32_t instr) -> void {
-          auto store_addr = rs1(instr) + s_imm(instr);
+          auto store_addr = state.registers.at(rs1(instr)) + s_imm(instr);
           state.mem.write<uint8_t>(
               store_addr, static_cast<uint8_t>(state.registers.at(rs2(instr))));
           state.PC += 4;
         },
         // SH
         [](MachineState &state, const uint32_t instr) -> void {
-          auto store_addr = rs1(instr) + s_imm(instr);
+          auto store_addr = state.registers.at(rs1(instr)) + s_imm(instr);
           if (store_addr % 2)
             throw rv_traps::Traps::Store_AMO_address_misaligned;
           state.mem.write<uint16_t>(
@@ -302,7 +302,7 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
         },
         // SW
         [](MachineState &state, const uint32_t instr) -> void {
-          auto store_addr = rs1(instr) + s_imm(instr);
+          auto store_addr = state.registers.at(rs1(instr)) + s_imm(instr);
           if (store_addr % 4)
             throw rv_traps::Traps::Store_AMO_address_misaligned;
           state.mem.write<uint32_t>(
