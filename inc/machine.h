@@ -2,8 +2,8 @@
 #define MACHINE_H
 #include "memory.h"
 #include <array>
-constexpr auto example_file_offset = 0x10080000;
-constexpr auto example_mem_offset = 0x30000000;
+constexpr auto ROM_offset = 0x20000000;
+constexpr auto RAM_offset = 0x40000000;
 
 template <size_t V>
 concept valid_XLEN = requires() { V == 32 || V == 64; };
@@ -22,7 +22,7 @@ using reg_t = XlenStruct<XLEN>::type;
 
 struct MachineState {
   std::array<reg_t, 32> registers{};
-  reg_t PC{example_file_offset};
-  SimpleMem<1024 * 256> mem{example_mem_offset};
+  reg_t PC{ROM_offset};
+  SimpleMem<1024 * 256> mem{RAM_offset};
 };
 #endif

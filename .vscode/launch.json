@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceRoot}/build/Debug/iss-sim",
-            "args": [],
+            "args": ["/Users/alex/Code/ISS/fw/build/Debug/hello_riscv.bin"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

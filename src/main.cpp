@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   std::filesystem::path path{argv[1]};
-  auto loaded_bin = LoadedRiscVFile(path, example_file_offset);
+  auto loaded_bin = LoadedRiscVFile(path, ROM_offset);
 
   MachineState state;
   auto &PC = state.PC;
