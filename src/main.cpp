@@ -10,39 +10,29 @@
 #include <filesystem>
 #include <print>
 
-class LoadedRiscVFile : BinaryLoader {
-public:
-  LoadedRiscVFile(std::filesystem::path path, unsigned start_offset = 0)
-      : BinaryLoader(path, start_offset) {}
-  template <typename T>
-  [[nodiscard]]
-  constexpr T fetch(size_t addr) {
-    try {
-      return this->at<T>(addr);
-    } catch (std::out_of_range) {
-      throw rv_traps::Traps::Instruction_access_fault;
-    }
-  }
-};
-
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     std::println("Requires path to binary as second argument");
     return 1;
   }
   std::filesystem::path path{argv[1]};
-  auto loaded_bin = LoadedRiscVFile(path, ROM_offset);
 
   MachineState state;
   auto &PC = state.PC;
   bool terminate = false;
 
+  // load_elf(memory, file)
+  // loads the binary data from file into the memory
+  // set PC to entrypoint
+
   while (!terminate) {
     try {
       // Fetch
-      uint32_t instr_word = loaded_bin.fetch<uint32_t>(PC);
+      // TODO: wrap fetch so Instruction_access_fault can be thrown on error
+      uint32_t instr_word = state.mem.read<uint32_t>(PC);
       // Decode
       auto idx = Decoder::decode(instr_word);
+      std::println("Decoded 0x{:x}: {}", state.PC, instructions.at(idx).name);
       // Execute
       instruction_functions.at(idx)(state, instr_word);
       state.registers[0] = 0; // Force x0 to 0
