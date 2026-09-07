@@ -110,7 +110,7 @@ template <uint8_t bitpos, typename T> constexpr T sext(T val) {
   static_assert(bitpos <= sizeof(T) * 8,
                 "Trying to sign extend beyond supplied types size");
   using signed_t = std::make_signed_t<T>;
-  auto shamt = sizeof(T) * 8 - bitpos;
+  auto shamt = sizeof(T) * 8 - bitpos - 1;
   return static_cast<T>(static_cast<signed_t>(val) << shamt >> shamt);
 }
 template <typename T, typename I> T sext(I init) {
