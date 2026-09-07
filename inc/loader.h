@@ -18,7 +18,8 @@ struct MemoryMappedFile {
 };
 
 template <Memory TargetMemory>
-auto load_elf_file(TargetMemory &underlying, std::filesystem::path path) {
+auto load_elf_file(TargetMemory &underlying, std::filesystem::path path,
+                   std::map<std::string, uint64_t> &symbols) {
   auto loaded_file = MemoryMappedFile(path);
   std::byte *fptr = static_cast<std::byte *>(loaded_file.ptr);
   assert(loaded_file.size >= sizeof(Elf64_Ehdr));
@@ -34,7 +35,6 @@ auto load_elf_file(TargetMemory &underlying, std::filesystem::path path) {
   assert(IS_ELF_VCURRENT(*eh64));
 
   std::vector<uint8_t> zeros;
-  std::map<std::string, uint64_t> symbols;
 
   Elf32_Ehdr *eh = reinterpret_cast<Elf32_Ehdr *>(fptr);
   Elf32_Phdr *ph = reinterpret_cast<Elf32_Phdr *>(fptr + eh->e_phoff);
@@ -63,6 +63,7 @@ auto load_elf_file(TargetMemory &underlying, std::filesystem::path path) {
       static_cast<void *>(fptr + (sh)[eh->e_shstrndx].sh_offset));
   unsigned strtabidx = 0, symtabidx = 0;
   for (unsigned i = 0; i < eh->e_shnum; i++) {
+    [[maybe_unused]]
     unsigned max_len = (sh)[eh->e_shstrndx].sh_size - (sh)[i].sh_name;
     assert((sh)[i].sh_name < (sh)[eh->e_shstrndx].sh_size);
     assert(strnlen(shstrtab + (sh)[i].sh_name, max_len) < max_len);
@@ -79,6 +80,7 @@ auto load_elf_file(TargetMemory &underlying, std::filesystem::path path) {
     Elf32_Sym *sym =
         reinterpret_cast<Elf32_Sym *>(fptr + sh[symtabidx].sh_offset);
     for (unsigned i = 0; i < (sh)[symtabidx].sh_size / sizeof(Elf32_Sym); i++) {
+      [[maybe_unused]]
       unsigned max_len = (sh)[strtabidx].sh_size - (sym)[i].st_name;
       assert((sym)[i].st_name < (sh)[strtabidx].sh_size);
       assert(strnlen(reinterpret_cast<char *>(strtab + (sym)[i].st_name),

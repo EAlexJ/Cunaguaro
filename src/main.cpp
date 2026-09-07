@@ -21,7 +21,8 @@ int main(int argc, char *argv[]) {
   auto &PC = state.PC;
   bool terminate = false;
 
-  PC = load_elf_file(state.mem, path);
+  std::map<std::string, uint64_t> syms{};
+  PC = load_elf_file(state.mem, path, syms);
 
   while (!terminate) {
     try {
@@ -30,7 +31,6 @@ int main(int argc, char *argv[]) {
       uint32_t instr_word = state.mem.read<uint32_t>(PC);
       // Decode
       auto idx = Decoder::decode(instr_word);
-      std::println("Decoded 0x{:x}: {}", state.PC, instructions.at(idx).name);
       // Execute
       instruction_functions.at(idx)(state, instr_word);
       state.registers[0] = 0; // Force x0 to 0
