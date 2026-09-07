@@ -1,19 +1,16 @@
 MEMORY
 {
-    ROM (rx)  : ORIGIN = 0x20000000, LENGTH = 64K  /* Instruction memory */
     RAM (rwx) : ORIGIN = 0x40000000, LENGTH = 256K  /* Data RAM */
 }
 
 SECTIONS
 {
-    /* Code and read-only data stored in ROM */
     .text : {
         *(.text.init)    /* Reset and boot code first */
         *(.text .text.*)
         *(.rodata .rodata.*)
-    } > ROM
+    } > RAM
 
-    /* Initialized globals: live in RAM at runtime, stored in ROM */
     .data : AT(ADDR(.text) + SIZEOF(.text)) {
         __data_start = .;
         *(.data .data.*)
