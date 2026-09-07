@@ -1,8 +1,9 @@
 #include "loader.h"
+#include <cassert>
 #include <cstddef>
 #include <cstring>
 #include <fcntl.h>
-
+#include <stdexcept>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>

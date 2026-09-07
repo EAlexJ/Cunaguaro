@@ -21,9 +21,7 @@ int main(int argc, char *argv[]) {
   auto &PC = state.PC;
   bool terminate = false;
 
-  // load_elf(memory, file)
-  // loads the binary data from file into the memory
-  // set PC to entrypoint
+  PC = load_elf_file(state.mem, path);
 
   while (!terminate) {
     try {
