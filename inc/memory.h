@@ -23,11 +23,11 @@ template <size_t size_> class SimpleMem {
 public:
   SimpleMem<size_>(const unsigned off) : offset(off){};
 
-  // required to be a continous_range
+  // required to be a continuous_range
   constexpr auto *begin() noexcept { return backing.begin(); }
   constexpr auto *end() noexcept { return backing.end(); }
-  constexpr const auto *begin() const noexcept { return backing.begin(); }
-  constexpr const auto *end() const noexcept { return backing.end(); }
+  constexpr const auto *begin() const noexcept { return backing.cbegin(); }
+  constexpr const auto *end() const noexcept { return backing.cend(); }
 
   template <typename T>
     requires std::is_trivially_copyable_v<T>
