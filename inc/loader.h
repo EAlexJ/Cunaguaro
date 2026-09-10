@@ -45,12 +45,13 @@ auto load_elf_file(TargetMemory &underlying, std::filesystem::path path,
       uint64_t load_addr = (ph)[i].p_paddr;
       if ((ph)[i].p_filesz) {
         assert(loaded_file.size >= (ph)[i].p_offset + (ph)[i].p_filesz);
-        underlying.write(load_addr, fptr + (ph)[i].p_offset, (ph)[i].p_filesz);
+        underlying.write(load_addr,
+                         {fptr + (ph)[i].p_offset, (ph)[i].p_filesz});
       }
       if (size_t pad = (ph)[i].p_memsz - (ph)[i].p_filesz) {
         zeros.resize(pad);
         underlying.write(load_addr + (ph)[i].p_filesz,
-                         reinterpret_cast<std::byte *>(zeros.data()), pad);
+                         {reinterpret_cast<std::byte *>(zeros.data()), pad});
       }
     }
   }
@@ -59,8 +60,8 @@ auto load_elf_file(TargetMemory &underlying, std::filesystem::path path,
   assert(eh->e_shstrndx < eh->e_shnum);
   assert(loaded_file.size >=
          (sh)[eh->e_shstrndx].sh_offset + (sh)[eh->e_shstrndx].sh_size);
-  char *shstrtab = static_cast<char *>(
-      static_cast<void *>(fptr + (sh)[eh->e_shstrndx].sh_offset));
+  char *shstrtab =
+      reinterpret_cast<char *>(fptr + (sh)[eh->e_shstrndx].sh_offset);
   unsigned strtabidx = 0, symtabidx = 0;
   for (unsigned i = 0; i < eh->e_shnum; i++) {
     [[maybe_unused]]

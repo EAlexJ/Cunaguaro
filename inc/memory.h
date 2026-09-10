@@ -10,8 +10,7 @@
 #include <flat_map>
 #include <span>
 #include <stdexcept>
-
-constexpr unsigned virtual_writer_addr = 0x10000000U;
+#include <utility>
 
 template <typename T>
 concept Memory = requires(T mem, uint64_t addr, std::span<std::byte> content) {
@@ -23,38 +22,64 @@ template <size_t size> class SimpleMem {
   std::array<std::byte, size> backing{};
   size_t offset;
 
-  using rd_fn_sig = void(uint64_t, std::span<std::byte>) const;
-  using wr_fn_sig = void(uint64_t, std::span<const std::byte>);
   // TODO: is there a non copy-paste way to do this? e.g. boost::callable_traits
   // explicitly remove the const qualifier
-  using rd_callback_t = void (*)(uint64_t, std::span<std::byte>);
-  using wr_callback_t = wr_fn_sig *;
+  using rd_callback_t = void (*)(const SimpleMem<size> &, std::span<std::byte>);
+  using wr_callback_t = void (*)(SimpleMem<size> &, std::span<const std::byte>);
   std::flat_map<uint64_t, rd_callback_t> rd_callbacks;
   std::flat_map<uint64_t, wr_callback_t> wr_callbacks;
 
 public:
-  SimpleMem<size>(const unsigned off) : offset(off){};
+  SimpleMem<size>(const unsigned off) : offset(off) {
+    constexpr unsigned virtual_writer_addr = 0x10000000U;
+    register_wr_callback(
+        virtual_writer_addr, [](auto &_, std::span<const std::byte> content) {
+          assert(content.size_bytes() == 1);
+          char value;
+          std::memcpy(&value, content.data(), content.size_bytes());
+          putc(value, stdout);
+          return;
+        });
+  };
 
-  rd_fn_sig read;
-  wr_fn_sig write;
+  void read(uint64_t, std::span<std::byte>) const;
+  void write(uint64_t, std::span<const std::byte>);
 
   template <typename T> [[nodiscard]] T read(uint64_t addr) const;
   template <typename T> void write(uint64_t addr, T val);
+  constexpr void register_rd_callback(uint64_t addr, rd_callback_t fn) {
+    rd_callbacks.emplace(addr, std::move(fn));
+  }
+  constexpr void register_wr_callback(uint64_t addr, wr_callback_t fn) {
+    wr_callbacks.emplace(addr, std::move(fn));
+  }
 };
 
 template <size_t size>
 void SimpleMem<size>::read(uint64_t addr, std::span<std::byte> content) const {
-  auto eff_addr = addr - offset;
-  if (addr < offset || eff_addr + content.size_bytes() > backing.size())
+  if (!rd_callbacks.empty()) [[unlikely]] {
+    if (auto it = rd_callbacks.find(addr); it != rd_callbacks.end()) {
+      it->second(*this, content);
+      return;
+    }
+  }
+  if (addr < offset || (addr - offset) + content.size_bytes() > backing.size())
     throw std::out_of_range("Trying to read SimpleMem out of bounds");
+  const auto eff_addr = addr - offset;
   std::memcpy(content.data(), backing.data() + eff_addr, content.size_bytes());
 }
 
 template <size_t size>
 void SimpleMem<size>::write(uint64_t addr, std::span<const std::byte> content) {
-  auto eff_addr = addr - offset;
-  if (addr < offset || eff_addr + content.size_bytes() > backing.size())
+  if (!wr_callbacks.empty()) {
+    if (auto it = wr_callbacks.find(addr); it != wr_callbacks.end()) {
+      it->second(*this, content);
+      return;
+    }
+  }
+  if (addr < offset || (addr - offset) + content.size_bytes() > backing.size())
     throw std::out_of_range("Trying to write SimpleMem out of bounds");
+  const auto eff_addr = addr - offset;
   std::memcpy(backing.data() + eff_addr, content.data(), content.size_bytes());
 }
 
@@ -69,12 +94,7 @@ template <typename T>
 template <size_t size>
 template <typename T>
 void SimpleMem<size>::write(uint64_t addr, T val) {
-  if (addr == virtual_writer_addr) {
-    putc(static_cast<int>(val), stdout);
-    return;
-  } else {
-    write(addr, std::as_bytes(std::span{&val, 1}));
-  }
+  write(addr, std::as_bytes(std::span{&val, 1}));
 }
 
 #endif

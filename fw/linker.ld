@@ -1,3 +1,6 @@
+PROVIDE(tohost   = 0x11000000);
+PROVIDE(fromhost = 0x11000008);
+
 MEMORY
 {
     RAM (rwx) : ORIGIN = 0x40000000, LENGTH = 256K  /* Data RAM */
