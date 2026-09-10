@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <exception>
 #include <filesystem>
 #include <print>
@@ -23,6 +24,17 @@ int main(int argc, char *argv[]) {
 
   std::map<std::string, uint64_t> syms{};
   PC = load_elf_file(state.mem, path, syms);
+  if (auto it = syms.find("tohost"); it != syms.end())
+    state.mem.register_wr_callback(
+        it->second, [](auto &_, std::span<const std::byte> content) {
+          uint64_t tohost_val{};
+          std::memcpy(&tohost_val, content.data(), content.size_bytes());
+          if (tohost_val & 1) {
+            std::println("tohost value is 0x{:x} ({}), ending simulation",
+                         tohost_val, tohost_val >> 1);
+            std::terminate();
+          }
+        });
 
   while (!terminate) {
     try {
