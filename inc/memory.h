@@ -22,8 +22,6 @@ template <size_t size> class SimpleMem {
   std::array<std::byte, size> backing{};
   size_t offset;
 
-  // TODO: is there a non copy-paste way to do this? e.g. boost::callable_traits
-  // explicitly remove the const qualifier
   using rd_callback_t = void (*)(const SimpleMem<size> &, std::span<std::byte>);
   using wr_callback_t = void (*)(SimpleMem<size> &, std::span<const std::byte>);
   std::flat_map<uint64_t, rd_callback_t> rd_callbacks;
