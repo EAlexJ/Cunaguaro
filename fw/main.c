@@ -16,8 +16,8 @@ int main(void) {
 
   /* Halt execution */
   while (1) {
-    // auto code = 0;
-    //*HTIF_TOHOST = (uint32_t)((code << 1) | 1);
+    auto code = 0;
+    *HTIF_TOHOST = (uint32_t)((code << 1) | 1);
     __asm__ volatile("wfi");
   }
 

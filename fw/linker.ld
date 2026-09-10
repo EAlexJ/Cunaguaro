@@ -1,6 +1,7 @@
-PROVIDE(tohost   = 0x11000000);
-PROVIDE(fromhost = 0x11000008);
-
+tohost   = 0x11000000;
+fromhost = 0x11000008;
+EXTERN(tohost);
+EXTERN(fromhost);
 MEMORY
 {
     RAM (rwx) : ORIGIN = 0x40000000, LENGTH = 256K  /* Data RAM */
@@ -8,6 +9,7 @@ MEMORY
 
 SECTIONS
 {
+
     .text : {
         *(.text.init)    /* Reset and boot code first */
         *(.text .text.*)
