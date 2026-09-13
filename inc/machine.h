@@ -23,6 +23,6 @@ using reg_t = XlenStruct<XLEN>::type;
 struct MachineState {
   std::array<reg_t, 32> registers{};
   reg_t PC{memory_offset};
-  SimpleMem<1024 * 256> mem{memory_offset};
+  SimpleMem<1024 * 512> mem{memory_offset};
 };
 #endif
