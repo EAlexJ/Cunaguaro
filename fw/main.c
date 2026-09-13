@@ -1,7 +1,6 @@
 #include <stdint.h>
 
 #define VPRINTER_ADDR ((volatile uint8_t *)0x10000000UL)
-#define HTIF_TOHOST ((volatile uint32_t *)0x11000000UL)
 #define SYS_WRITE 64
 extern volatile uint64_t tohost;
 static void printer_putc(char c) { *VPRINTER_ADDR = (uint8_t)c; }
@@ -13,10 +12,6 @@ static void printer_puts(const char *str) {
 }
 static volatile uint64_t htif_payload[8] __attribute__((aligned(8)));
 
-static void htif_syscall(volatile uint64_t *args) {
-
-  tohost = (uint64_t)(uintptr_t)args;
-}
 static void htif_write(const char *buf, uint32_t len) {
   htif_payload[0] = SYS_WRITE;
   htif_payload[1] = 1;
@@ -31,7 +26,7 @@ int main(void) {
   /* Halt execution */
   while (1) {
     auto code = 0;
-    *HTIF_TOHOST = (uint32_t)((code << 1) | 1);
+    tohost = (uint64_t)((code << 1) | 1);
     __asm__ volatile("wfi");
   }
 
