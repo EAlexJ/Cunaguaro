@@ -6,6 +6,7 @@
 #include "traps.h"
 #include <array>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -57,6 +58,8 @@ int main(int argc, char *argv[]) {
     });
   };
 
+  uint64_t instr_count{};
+  auto start = std::chrono::steady_clock::now();
   while (!terminate) {
     try {
       // Fetch
@@ -67,11 +70,20 @@ int main(int argc, char *argv[]) {
       // Execute
       instruction_functions.at(idx)(state, instr_word);
       state.registers[0] = 0; // Force x0 to 0
+      instr_count++;
     } catch (rv_traps::Traps &trap) {
       std::println("Terminating due to trap: {}", rv_traps::get_trap_str(trap));
       return 1;
     }
   }
+  auto end = std::chrono::steady_clock::now();
+  std::chrono::duration<double> elapsed = end - start;
+  double seconds = elapsed.count();
+  double mips = (static_cast<double>(instr_count) / 1e6) / elapsed.count();
+  std::println("\n--- Performance ---");
+  std::println("Instructions: {}", instr_count);
+  std::println("Host Time:    {:8.4} s", seconds);
+  std::println("Throughput:   {:.6} MIPS", mips);
 
   return 0;
 }

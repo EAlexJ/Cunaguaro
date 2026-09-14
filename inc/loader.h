@@ -8,7 +8,8 @@
 #include <filesystem>
 #include <map>
 #include <vector>
-struct MemoryMappedFile {
+class MemoryMappedFile {
+public:
   size_t size;
   void *ptr;
   MemoryMappedFile(std::filesystem::path path);

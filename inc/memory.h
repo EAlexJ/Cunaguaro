@@ -61,6 +61,7 @@ void SimpleMem<size>::read(uint64_t addr, std::span<std::byte> content) const {
       return;
     }
   }
+  [[unlikely]]
   if (addr < offset || (addr - offset) + content.size_bytes() > backing.size())
     throw std::out_of_range("Trying to read SimpleMem out of bounds");
   const auto eff_addr = addr - offset;
@@ -75,6 +76,7 @@ void SimpleMem<size>::write(uint64_t addr, std::span<const std::byte> content) {
       return;
     }
   }
+  [[unlikely]]
   if (addr < offset || (addr - offset) + content.size_bytes() > backing.size())
     throw std::out_of_range("Trying to write SimpleMem out of bounds");
   const auto eff_addr = addr - offset;
