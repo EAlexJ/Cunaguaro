@@ -15,7 +15,6 @@
 #include <stdexcept>
 #include <unistd.h>
 
-static bool terminate = false;
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     std::println("Requires path to binary as second argument");
@@ -46,12 +45,11 @@ int main(int argc, char *argv[]) {
       auto ret = exec_htif(mem, span);
       switch (ret) {
         using enum htif_return;
-      case Exit:
-        terminate = 1;
-        break;
+
       case Not_Supported:
         throw std::runtime_error("HTIF Syscall not supported");
       case Okay:
+      case Exit:
       default:
       }
       return;
@@ -85,5 +83,5 @@ int main(int argc, char *argv[]) {
   std::println("Host Time:    {:8.4} s", seconds);
   std::println("Throughput:   {:.6} MIPS", mips);
 
-  return 0;
+  return terminate - 1;
 }

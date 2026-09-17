@@ -41,6 +41,7 @@ static htif_return exec_htif(Memory auto &mem,
     if (global_tohost_value & 1) {
       std::println("tohost value is 0x{:x} ({}), ending simulation",
                    global_tohost_value, global_tohost_value >> 1);
+      terminate = static_cast<int>(global_tohost_value);
       return htif_return::Exit;
     }
     std::array<uint64_t, 8> payload{};
