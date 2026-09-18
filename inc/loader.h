@@ -18,7 +18,7 @@ public:
   ~MemoryMappedFile();
 };
 
-template <Memory TargetMemory>
+template <MemoryTarget TargetMemory>
 auto load_elf_file(TargetMemory &underlying, std::filesystem::path path,
                    std::map<std::string, uint64_t> &symbols) {
   auto loaded_file = MemoryMappedFile(path);

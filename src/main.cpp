@@ -1,5 +1,4 @@
 #include "decoder.h"
-#include "htif.h"
 #include "instructions.h"
 #include "loader.h"
 #include "machine.h"
@@ -12,7 +11,7 @@
 #include <cstring>
 #include <filesystem>
 #include <print>
-#include <stdexcept>
+
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
@@ -22,43 +21,20 @@ int main(int argc, char *argv[]) {
   }
   std::filesystem::path path{argv[1]};
 
-  MachineState state;
+  SimulationCtx ctx{};
+  MachineState state(ctx);
+
   auto &PC = state.PC;
 
   std::map<std::string, uint64_t> syms{};
   PC = load_elf_file(state.mem, path, syms);
-  if (auto it = syms.find("tohost"); it != syms.end()) {
-    // tohost is a 64 bit value, so any RV32 implementation issues two 32-bit
-    // writes.
-    // Trigger only when the high bits are written to (assumes these two writes
-    // will only ever occur in this order)
-    auto tohost_trigger = it->second;
-    if constexpr (XLEN == 32) {
-      tohost_trigger = it->second + 4;
-      // The first (lower) write should write the lower half of the tohost value
-      state.mem.register_wr_callback(it->second, [](auto &, auto span) {
-        std::memcpy(&global_tohost_value, span.data(), span.size());
-        return;
-      });
-    }
-    state.mem.register_wr_callback(tohost_trigger, [](auto &mem, auto span) {
-      auto ret = exec_htif(mem, span);
-      switch (ret) {
-        using enum htif_return;
 
-      case Not_Supported:
-        throw std::runtime_error("HTIF Syscall not supported");
-      case Okay:
-      case Exit:
-      default:
-      }
-      return;
-    });
-  };
+  if (auto it = syms.find("tohost"); it != syms.end())
+    state.mem.set_tohost_addr(it->second);
 
   uint64_t instr_count{};
   auto start = std::chrono::steady_clock::now();
-  while (!terminate) {
+  while (!ctx.should_exit) {
     try {
       // Fetch
       // TODO: wrap fetch so Instruction_access_fault can be thrown on error
@@ -73,7 +49,8 @@ int main(int argc, char *argv[]) {
       state.csrs.minstret++;
     } catch (rv_traps::Traps &trap) {
       std::println("Terminating due to trap: {}", rv_traps::get_trap_str(trap));
-      return 1;
+      ctx.exit_code = 1;
+      break;
     }
   }
   auto end = std::chrono::steady_clock::now();
@@ -85,5 +62,5 @@ int main(int argc, char *argv[]) {
   std::println("Host Time:    {:8.4} s", seconds);
   std::println("Throughput:   {:.6} MIPS", mips);
 
-  return terminate - 1;
+  return ctx.exit_code;
 }

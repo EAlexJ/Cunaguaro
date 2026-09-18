@@ -1,7 +1,9 @@
 #ifndef MACHINE_H
 #define MACHINE_H
 #include "csr_file.h"
+#include "htif.h"
 #include "memory.h"
+#include "simulation_ctx.h"
 #include <array>
 
 constexpr auto memory_offset = 0x40000000;
@@ -22,10 +24,15 @@ constexpr auto XLEN = 32;
 
 using reg_t = XlenStruct<XLEN>::type;
 
-struct MachineState {
+class MachineState {
+private:
+  SimpleMem<1024 * 512> mem_target{memory_offset};
+
+public:
   std::array<reg_t, 32> registers{};
-  reg_t PC{memory_offset};
-  SimpleMem<1024 * 512> mem{memory_offset};
-  SwitchCaseCSRs<reg_t> csrs;
+  reg_t PC{};
+  HtifMemoryDecorator<decltype(mem_target)> mem;
+  SwitchCaseCSRs<reg_t> csrs{};
+  explicit MachineState(SimulationCtx &ctx) : mem(ctx, mem_target) {};
 };
 #endif
