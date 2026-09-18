@@ -111,6 +111,9 @@ template <typename reg_t, size_t IALIGN = 32> class SwitchCaseCSRs {
   } backing;
 
 public:
+  uint64_t &mcycle = backing.mcycle;
+  uint64_t &minstret = backing.minstret;
+
   void read(const auto csr_id, reg_t &val) {
     switch ((static_cast<Riscv_Csrs>(csr_id))) {
       using enum Riscv_Csrs;

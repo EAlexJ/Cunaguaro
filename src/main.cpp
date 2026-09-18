@@ -69,6 +69,8 @@ int main(int argc, char *argv[]) {
       instruction_functions.at(idx)(state, instr_word);
       state.registers[0] = 0; // Force x0 to 0
       instr_count++;
+      state.csrs.mcycle++;
+      state.csrs.minstret++;
     } catch (rv_traps::Traps &trap) {
       std::println("Terminating due to trap: {}", rv_traps::get_trap_str(trap));
       return 1;
