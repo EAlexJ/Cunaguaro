@@ -134,7 +134,7 @@ public:
       return;
     }
     case mstatush: {
-      val = backing.mstatus >> 32;
+      val = static_cast<reg_t>(backing.mstatus >> 32);
       return;
     }
     case mepc: {
@@ -162,11 +162,11 @@ public:
       return;
     }
     case mcycleh: {
-      val = backing.mcycle >> 32;
+      val = static_cast<reg_t>(backing.mcycle >> 32);
       return;
     }
     case minstreth: {
-      val = backing.minstret >> 32;
+      val = static_cast<reg_t>(backing.minstret >> 32);
       return;
     }
     default:
@@ -185,6 +185,7 @@ public:
     }
     case mie: {
       backing.mie = val & MIE_WRITABLE_MASK;
+      return;
     }
     case mtvec: {
       backing.mtvec = val;

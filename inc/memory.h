@@ -33,10 +33,10 @@ template <size_t size> class SimpleMem {
   std::flat_map<uint64_t, wr_callback_t> wr_callbacks;
 
 public:
-  SimpleMem<size>(const unsigned off) : offset(off) {
+  SimpleMem(const unsigned off) : offset(off) {
     constexpr unsigned virtual_writer_addr = 0x10000000U;
     register_wr_callback(
-        virtual_writer_addr, [](auto &_, std::span<const std::byte> content) {
+        virtual_writer_addr, [](auto &, std::span<const std::byte> content) {
           assert(content.size_bytes() == 1);
           char value;
           std::memcpy(&value, content.data(), content.size_bytes());

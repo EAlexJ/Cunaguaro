@@ -72,7 +72,7 @@ public:
       std::array<uint64_t, 8> payload{};
       try {
         backing.read(tohost_val, std::as_writable_bytes(std::span(payload)));
-      } catch (std::out_of_range) {
+      } catch (std::out_of_range&) {
         throw std::runtime_error("reading tohost payload went wrong");
       }
       do_htif_syscall(payload);
@@ -97,7 +97,7 @@ public:
       std::vector<std::byte> buf(len);
       try {
         backing.read(ptr, std::as_writable_bytes(std::span(buf)));
-      } catch (std::out_of_range) {
+      } catch (std::out_of_range&) {
         throw std::runtime_error("reading tohost SYS_WRITE content went wrong");
       }
       ::write(fd, buf.data(), buf.size());

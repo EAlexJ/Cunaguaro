@@ -121,7 +121,7 @@ constexpr T bit_range(T value) {
                 "Upper is out of range for supplied type");
   static_assert(lower <= sizeof(T) * 8,
                 "Lower is out of range for supplied type");
-  return (value >> lower) & std::bitset<upper + 1 - lower>().set().to_ulong();
+  return (value >> lower) & static_cast<T>(std::bitset<upper + 1 - lower>().set().to_ulong());
 }
 template <uint8_t bitpos, typename T> constexpr T sext(T val) {
   static_assert(bitpos <= sizeof(T) * 8,
@@ -183,7 +183,7 @@ constexpr std::array<void (*)(MachineState &, const uint32_t instr),
         // JALR
         [](MachineState &state, const uint32_t instr) -> void {
           reg_t target_addr =
-              sext<12>(i_imm(instr)) + state.registers.at(rs1(instr)) & ~1u;
+              (sext<12>(i_imm(instr)) + state.registers.at(rs1(instr)) )& ~1u;
           if (target_addr % (IALIGN / 8))
             throw rv_traps::Traps::Instruction_address_misaligned;
           state.registers.at(rd(instr)) = state.PC + 4;
