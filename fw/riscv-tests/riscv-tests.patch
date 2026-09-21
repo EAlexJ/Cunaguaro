@@ -1,0 +1,152 @@
+diff --git a/benchmarks/Makefile b/benchmarks/Makefile
+index 8c65579..674d793 100644
+--- a/benchmarks/Makefile
++++ b/benchmarks/Makefile
+@@ -3,9 +3,10 @@
+ #-----------------------------------------------------------------------
+ # Yunsup Lee (yunsup@cs.berkeley.edu)
+ #
+-
++XLEN = 32
+ XLEN ?= 64
+ 
++ABI=ilp32
+ ifeq ($(XLEN),32)
+ ABI ?= ilp32d
+ endif
+@@ -32,13 +33,14 @@ base_bmarks = \
+ 	vvadd \
+ 	memcpy \
+ 	multiply \
+-	mm \
+-	dhrystone \
+ 	spmv \
++	dhrystone \
++	pmp\
++	#	mm \
+ 	mt-vvadd \
+ 	mt-matmul \
+ 	mt-memcpy \
+-	pmp \
++
+ 
+ vec_bmarks = \
+ 	vec-memcpy \
+@@ -46,18 +48,20 @@ vec_bmarks = \
+ 	vec-sgemm \
+ 	vec-strcmp \
+ 
+-bmarks = $(base_bmarks) $(vec_bmarks)
++bmarks = $(base_bmarks) #$(vec_bmarks)
+ 
+ #--------------------------------------------------------------------
+ # Build rules
+ #--------------------------------------------------------------------
+ 
++RISCV_PREFIX ?= riscv64-unknown-elf-
+ RISCV_PREFIX ?= riscv$(XLEN)-unknown-elf-
+ RISCV_GCC ?= $(RISCV_PREFIX)gcc
+-RISCV_GCC_OPTS ?= -U_FORTIFY_SOURCE -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -fno-tree-loop-distribute-patterns -Wno-implicit-int -Wno-implicit-function-declaration -mabi=$(ABI)
++RISCV_GCC_OPTS ?= -U_FORTIFY_SOURCE -DPREALLOCATE=1 -specs=picolibc.specs -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -fno-tree-loop-distribute-patterns -Wno-implicit-int -Wno-implicit-function-declaration -mabi=$(ABI)
+ RISCV_LINK ?= $(RISCV_GCC) -T $(src_dir)/common/test.ld $(incs)
+ RISCV_LINK_OPTS ?= -static -nostdlib -nostartfiles -lm -lgcc -T $(src_dir)/common/test.ld
+ RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data
++RISCV_MARCH ?= rv32i_zicsr
+ RISCV_MARCH ?= rv$(XLEN)gc
+ RISCV_VMARCH ?= rv$(XLEN)gcv
+ RISCV_SIM ?= spike --isa=rv$(XLEN)gcv
+diff --git a/benchmarks/common/crt.S b/benchmarks/common/crt.S
+index 33e45ec..1fb198f 100644
+--- a/benchmarks/common/crt.S
++++ b/benchmarks/common/crt.S
+@@ -48,8 +48,8 @@ _start:
+   li  x31,0
+ 
+   # enable FPU, vector, and accelerator if present
+-  li t0, MSTATUS_FS | MSTATUS_XS | MSTATUS_VS
+-  csrs mstatus, t0
++  #li t0, MSTATUS_FS | MSTATUS_XS | MSTATUS_VS
++  #csrs mstatus, t0
+ 
+   # make sure XLEN agrees with compilation choice
+   li t0, 1
+@@ -107,8 +107,8 @@ _start:
+ #endif
+ 
+   # initialize trap vector
+-  la t0, trap_entry
+-  csrw mtvec, t0
++  #la t0, trap_entry
++  #csrw mtvec, t0
+ 
+   # initialize global pointer
+ .option push
+@@ -121,7 +121,7 @@ _start:
+   and tp, tp, -64
+ 
+   # get core id
+-  csrr a0, mhartid
++  #csrr a0, mhartid
+   # for now, assume only 1 core
+   li a1, 1
+ 1:bgeu a0, a1, 1b
+@@ -172,15 +172,15 @@ trap_entry:
+   SREG x30, 30*REGBYTES(sp)
+   SREG x31, 31*REGBYTES(sp)
+ 
+-  csrr a0, mcause
+-  csrr a1, mepc
+-  mv a2, sp
+-  jal handle_trap
+-  csrw mepc, a0
++  #csrr a0, mcause
++  #csrr a1, mepc
++  #mv a2, sp
++  #jal handle_trap
++  #csrw mepc, a0
+ 
+   # Remain in M-mode after eret
+   li t0, MSTATUS_MPP
+-  csrs mstatus, t0
++  #csrs mstatus, t0
+ 
+   LREG x1, 1*REGBYTES(sp)
+   LREG x2, 2*REGBYTES(sp)
+diff --git a/benchmarks/common/syscalls.c b/benchmarks/common/syscalls.c
+index 2a2a8f3..b2febf5 100644
+--- a/benchmarks/common/syscalls.c
++++ b/benchmarks/common/syscalls.c
+@@ -27,9 +27,9 @@ static uintptr_t syscall(uintptr_t which, uint64_t arg0, uint64_t arg1, uint64_t
+   __sync_synchronize();
+ 
+   tohost = (uintptr_t)magic_mem;
+-  while (fromhost == 0)
+-    ;
+-  fromhost = 0;
++  //while (fromhost == 0)
++  //  ;
++  //fromhost = 0;
+ 
+   __sync_synchronize();
+   return magic_mem[0];
+@@ -41,6 +41,7 @@ static char* counter_names[NUM_COUNTERS];
+ 
+ void setStats(int enable)
+ {
++  return;
+   int i = 0;
+ #define READ_CTR(name) do { \
+     while (i >= NUM_COUNTERS) ; \
+diff --git a/benchmarks/dhrystone/dhrystone.h b/benchmarks/dhrystone/dhrystone.h
+index e350c17..ff627cb 100644
+--- a/benchmarks/dhrystone/dhrystone.h
++++ b/benchmarks/dhrystone/dhrystone.h
+@@ -413,7 +413,7 @@ struct tms      time_info;
+ 
+ 
+ #define Mic_secs_Per_Second     1000000
+-#define NUMBER_OF_RUNS		500 /* Default number of runs */
++#define NUMBER_OF_RUNS		500000 /* Default number of runs */
+ 
+ #ifdef  NOSTRUCTASSIGN
+ #define structassign(d, s)      memcpy(&(d), &(s), sizeof(d))
