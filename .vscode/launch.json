@@ -6,15 +6,19 @@
     "configurations": [
         {
             "name": "(lldb) Launch",
-            "type": "cppdbg",
+            "type": "lldb",
             "request": "launch",
             "program": "${workspaceRoot}/build/Debug/iss-sim",
-            "args": ["/Users/alex/Code/ISS/fw/build/Debug/hello_riscv.bin"],
-            "stopAtEntry": false,
+            "args": ["${workspaceRoot}/fw/riscv-tests/dhrystone.riscv"],
             "cwd": "${fileDirname}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb"
+        },
+                {
+            "name": "(lldb) Launch ACT",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/build/Debug/iss-sim",
+            "args": ["${workspaceRoot}/work/iss/elfs/rv32i/Zicsr/Zicsr-csrrci-00.elf"],
+            "cwd": "${fileDirname}",
         }
 
     ]
