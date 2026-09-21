@@ -4,7 +4,7 @@ EXTERN(tohost);
 EXTERN(fromhost);
 MEMORY
 {
-    RAM (rwx) : ORIGIN = 0x40000000, LENGTH = 512K  /* Data RAM */
+    RAM (rwx) : ORIGIN = 0x80000000, LENGTH = 512K  /* Data RAM */
 }
 
 SECTIONS
