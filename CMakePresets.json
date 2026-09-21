@@ -22,8 +22,7 @@
       "hidden": true,
       "generator": "Ninja",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
@@ -36,29 +35,53 @@
     },
     {
       "name": "gcc-Debug",
-      "inherits": ["Base-gcc", "Base-Debug"],
+      "inherits": [
+        "Base-gcc",
+        "Base-Debug"
+      ],
       "binaryDir": "${sourceDir}/build/gcc/Debug"
     },
     {
       "name": "gcc-Release",
-      "inherits": ["Base-gcc", "Base-Release"],
+      "inherits": [
+        "Base-gcc",
+        "Base-Release"
+      ],
       "binaryDir": "${sourceDir}/build/gcc/Release"
     },
     {
       "name": "clang-Debug",
-      "inherits": ["Base-clang", "Base-Debug"],
+      "inherits": [
+        "Base-clang",
+        "Base-Debug"
+      ],
       "binaryDir": "${sourceDir}/build/clang/Debug"
     },
     {
       "name": "clang-Release",
-      "inherits": ["Base-clang", "Base-Release"],
+      "inherits": [
+        "Base-clang",
+        "Base-Release"
+      ],
       "binaryDir": "${sourceDir}/build/clang/Release"
     }
   ],
   "buildPresets": [
-    { "name": "gcc-Debug", "configurePreset": "gcc-Debug" },
-    { "name": "gcc-Release", "configurePreset": "gcc-Release" },
-    { "name": "clang-Debug", "configurePreset": "clang-Debug" },
-    { "name": "clang-Release", "configurePreset": "clang-Release" }
+    {
+      "name": "gcc-Debug",
+      "configurePreset": "gcc-Debug"
+    },
+    {
+      "name": "gcc-Release",
+      "configurePreset": "gcc-Release"
+    },
+    {
+      "name": "clang-Debug",
+      "configurePreset": "clang-Debug"
+    },
+    {
+      "name": "clang-Release",
+      "configurePreset": "clang-Release"
+    }
   ]
 }
