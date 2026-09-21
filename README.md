@@ -24,6 +24,8 @@ In order to generate the self-testing RISC-V [architectural compliance tests](ht
 ### Prerequisites
 
 - cmake
+- gcc 16 *or*
+- clang 23
 - docker (if available)
 - riscv64-unknown-elf-* toolchain (if available)
   

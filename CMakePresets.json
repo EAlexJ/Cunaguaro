@@ -2,30 +2,63 @@
   "version": 6,
   "configurePresets": [
     {
-      "name": "Debug",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/Debug",
+      "name": "Base-gcc",
+      "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_C_COMPILER": "gcc-16",
+        "CMAKE_CXX_COMPILER": "g++-16"
       }
     },
     {
-      "name": "Release",
+      "name": "Base-clang",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-23",
+        "CMAKE_CXX_COMPILER": "clang++-23"
+      }
+    },
+    {
+      "name": "Base-Debug",
+      "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+      }
+    },
+    {
+      "name": "Base-Release",
+      "hidden": true,
+      "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "gcc-Debug",
+      "inherits": ["Base-gcc", "Base-Debug"],
+      "binaryDir": "${sourceDir}/build/gcc/Debug"
+    },
+    {
+      "name": "gcc-Release",
+      "inherits": ["Base-gcc", "Base-Release"],
+      "binaryDir": "${sourceDir}/build/gcc/Release"
+    },
+    {
+      "name": "clang-Debug",
+      "inherits": ["Base-clang", "Base-Debug"],
+      "binaryDir": "${sourceDir}/build/clang/Debug"
+    },
+    {
+      "name": "clang-Release",
+      "inherits": ["Base-clang", "Base-Release"],
+      "binaryDir": "${sourceDir}/build/clang/Release"
     }
   ],
   "buildPresets": [
-    {
-      "name": "Debug",
-      "configurePreset": "Debug"
-    },
-    {
-      "name": "Release",
-      "configurePreset": "Release"
-    }
+    { "name": "gcc-Debug", "configurePreset": "gcc-Debug" },
+    { "name": "gcc-Release", "configurePreset": "gcc-Release" },
+    { "name": "clang-Debug", "configurePreset": "clang-Debug" },
+    { "name": "clang-Release", "configurePreset": "clang-Release" }
   ]
 }
