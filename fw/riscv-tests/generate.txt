@@ -6,4 +6,4 @@ git clone https://github.com/riscv-software-src/riscv-tests.git
 cd riscv-tests/benchmarks && git checkout d4451102 && git submodule init && git submodule update
 git apply /mnt/riscv-tests/riscv-tests.patch
 make -j
-cp *.riscv.* /mnt/riscv-tests
+cp *.riscv* /mnt/riscv-tests
