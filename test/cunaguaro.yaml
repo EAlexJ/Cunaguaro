@@ -3,7 +3,7 @@
 $schema: config_schema.json#
 kind: architecture configuration
 type: fully configured
-name: ISS
+name: Cuanguaro
 description: ISS supporting RV32I
 implemented_extensions:
   - { name: I, version: "= 2.1" }
@@ -185,9 +185,9 @@ params:
   TRAP_ON_ECALL_FROM_M: true
   TRAP_ON_EBREAK: true
   MARCHID_IMPLEMENTED: false
-  ARCH_ID_VALUE: 0x24
+  #ARCH_ID_VALUE: 0x24
   MIMPID_IMPLEMENTED: false
-  IMP_ID_VALUE: 0x100
+  #IMP_ID_VALUE: 0x100
   VENDOR_ID_BANK: 0xC
   VENDOR_ID_OFFSET: 0x2
   MISALIGNED_LDST: false

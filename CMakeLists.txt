@@ -3,10 +3,10 @@ project(cunaguaro LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_executable(cunaguaro-sim)
-target_sources(cunaguaro-sim PRIVATE src/main.cpp src/loader.cpp)
-target_include_directories(cunaguaro-sim PRIVATE inc)
-target_compile_options(cunaguaro-sim 
+add_executable(cunaguaro)
+target_sources(cunaguaro PRIVATE src/main.cpp src/loader.cpp)
+target_include_directories(cunaguaro PRIVATE inc)
+target_compile_options(cunaguaro 
     PRIVATE 
     -Wall
     -Wextra
