@@ -21,6 +21,8 @@ template <> struct XlenStruct<64> {
   using type = uint64_t;
 };
 constexpr auto XLEN = 32;
+constexpr unsigned IALIGN = 32;
+constexpr unsigned instruction_count = 47;
 
 using reg_t = XlenStruct<XLEN>::type;
 
