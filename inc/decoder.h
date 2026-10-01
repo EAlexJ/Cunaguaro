@@ -138,7 +138,11 @@ constexpr std::size_t get_instr_idx(const uint32_t k) {
 }
 
 struct InstructionCollector {
-  std::array<Opcode, 512> entries{};
+  std::array<Opcode, 512> entries = []() {
+    std::array<Opcode, 512> entries;
+    entries.fill(Opcode::ILLEGAL);
+    return entries;
+  }();
   consteval void add_encoding(Opcode instr, std::optional<uint8_t> funct7_bit,
                               std::optional<uint8_t> funct3,
                               uint8_t opcode_bits) {

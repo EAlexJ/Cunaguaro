@@ -11,7 +11,6 @@
 #include <unordered_map>
 // TODO: set backing value to a byte to see perf impact
 enum class Opcode {
-  ILLEGAL,
   LUI,
   AUIPC,
   JAL,
@@ -59,6 +58,8 @@ enum class Opcode {
   CSRRSI,
   CSRRCI,
   WFI,
+  COUNT,
+  ILLEGAL,
   SYSTEM_PRIV,
 };
 
