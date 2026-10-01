@@ -34,6 +34,14 @@
       }
     },
     {
+      "name": "Base-RelWithDebInfo",
+      "hidden": true,
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
       "name": "gcc-Debug",
       "inherits": [
         "Base-gcc",
@@ -50,6 +58,14 @@
       "binaryDir": "${sourceDir}/build/gcc/Release"
     },
     {
+      "name": "gcc-RelWithDebInfo",
+      "inherits": [
+        "Base-gcc",
+        "Base-RelWithDebInfo"
+      ],
+      "binaryDir": "${sourceDir}/build/gcc/RelWithDebInfo"
+    },
+    {
       "name": "clang-Debug",
       "inherits": [
         "Base-clang",
@@ -64,6 +80,14 @@
         "Base-Release"
       ],
       "binaryDir": "${sourceDir}/build/clang/Release"
+    },
+    {
+      "name": "clang-RelWithDebInfo",
+      "inherits": [
+        "Base-clang",
+        "Base-RelWithDebInfo"
+      ],
+      "binaryDir": "${sourceDir}/build/clang/RelWithDebInfo"
     }
   ],
   "buildPresets": [
@@ -76,12 +100,20 @@
       "configurePreset": "gcc-Release"
     },
     {
+      "name": "gcc-RelWithDebInfo",
+      "configurePreset": "gcc-RelWithDebInfo"
+    },
+    {
       "name": "clang-Debug",
       "configurePreset": "clang-Debug"
     },
     {
       "name": "clang-Release",
       "configurePreset": "clang-Release"
+    },
+    {
+      "name": "clang-RelWithDebInfo",
+      "configurePreset": "clang-RelWithDebInfo"
     }
   ]
 }
