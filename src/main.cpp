@@ -11,7 +11,7 @@
 #include <print>
 
 #include <unistd.h>
-
+using decoder = lut_decoder::Decoder;
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     std::println("Requires path to binary as second argument");
@@ -38,10 +38,7 @@ int main(int argc, char *argv[]) {
       // TODO: wrap fetch so Instruction_access_fault can be thrown on error
       uint32_t instr_word = state.mem.read<uint32_t>(PC);
       // Decode
-      auto idx = loop_decoder::Decoder::decode(instr_word);
-      [[maybe_unused]]
-      auto other = lut_decoder::LutDecoder::decode(instr_word);
-      assert(idx == other);
+      auto idx = decoder::decode(instr_word);
       //  Execute
       instruction_functions.at(idx)(state, instr_word);
       state.registers[0] = 0; // Force x0 to 0
