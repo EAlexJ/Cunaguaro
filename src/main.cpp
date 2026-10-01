@@ -39,8 +39,10 @@ int main(int argc, char *argv[]) {
       uint32_t instr_word = state.mem.read<uint32_t>(PC);
       // Decode
       auto idx = loop_decoder::Decoder::decode(instr_word);
-
-      // Execute
+      [[maybe_unused]]
+      auto other = lut_decoder::LutDecoder::decode(instr_word);
+      assert(idx == other);
+      //  Execute
       instruction_functions.at(idx)(state, instr_word);
       state.registers[0] = 0; // Force x0 to 0
       instr_count++;
