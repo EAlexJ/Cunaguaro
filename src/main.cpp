@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
       // Decode
       auto idx = decoder::decode(instr_word);
       //  Execute
-      instruction_functions.at(idx)(state, instr_word);
+      instruction_functions.at(static_cast<size_t>(idx))(state, instr_word);
       state.registers[0] = 0; // Force x0 to 0
       instr_count++;
       state.csrs.mcycle++;
