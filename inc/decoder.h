@@ -166,8 +166,9 @@ struct InstructionCollector {
       for (const auto f3 : f3_range) {
         uint32_t would_be_instruction = (f7 << 30) | (f3 << 12) | opcode_bits;
         auto encoding = get_instr_idx(would_be_instruction);
-        assert(entries[encoding] == Opcode::ILLEGAL);
-        entries.at(encoding) = instr;
+        assert(entries[encoding] == Opcode::ILLEGAL &&
+               "Collision when registrating instructions");
+        entries[encoding] = instr;
       }
   };
 };
