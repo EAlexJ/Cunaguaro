@@ -2,9 +2,11 @@
 #define LOADER_H
 
 #include "elf.h"
-#include "memory.h"
+#include "memory/memory.h"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <map>
 #include <vector>

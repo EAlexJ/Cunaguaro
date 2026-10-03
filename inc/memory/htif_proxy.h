@@ -1,20 +1,21 @@
 #ifndef HTIF_H
 #define HTIF_H
-#include "memory.h"
+#include "memory/memory.h"
 #include "simulation_ctx.h"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <limits>
 #include <print>
 #include <span>
 #include <type_traits>
 #include <unistd.h>
+#include <vector>
 
 enum class htif_devs : uint8_t { Syscall = 0, Console = 1, Disk = 2 };
 enum class htif_cmds : uint8_t { Read = 0, Write = 1 };
 
-template <MemoryTarget BackingMem> class HtifMemoryDecorator {
+template <MemoryTarget BackingMem> class HtifProxy {
   SimulationCtx &ctx_;
   BackingMem backing;
 
@@ -22,18 +23,14 @@ template <MemoryTarget BackingMem> class HtifMemoryDecorator {
   uint64_t tohost_val;
 
 public:
-  explicit HtifMemoryDecorator(SimulationCtx &ctx, BackingMem mem)
+  explicit HtifProxy(SimulationCtx &ctx, BackingMem mem)
       : ctx_(ctx), backing(std::move(mem)) {};
 
-  template <typename T>
-    requires std::is_trivially_copyable_v<T>
-  T read(uint64_t addr) const {
+  template <typename T> T read(uint64_t addr) const {
     return backing.template read<T>(addr);
   };
 
-  template <typename T>
-    requires std::is_trivially_copyable_v<T>
-  void write(uint64_t addr, T val) {
+  template <typename T> void write(uint64_t addr, T val) {
     if constexpr (sizeof(T) == 4) {
       if (tohost_addr && addr == tohost_addr) [[unlikely]] {
         tohost_val = (tohost_val & ~std::numeric_limits<T>::max()) | val;

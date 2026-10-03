@@ -1,8 +1,9 @@
 #ifndef MACHINE_H
 #define MACHINE_H
 #include "csr_file.h"
-#include "htif.h"
-#include "memory.h"
+#include "memory/htif_proxy.h"
+#include "memory/simple_mem.h"
+#include "memory/virtual_writer_proxy.h"
 #include "simulation_ctx.h"
 #include <array>
 
@@ -28,12 +29,13 @@ using reg_t = XlenStruct<XLEN>::type;
 
 class MachineState {
 private:
-  SimpleMem<1024 * 512> mem_target{memory_offset};
+  using mem_t = SimpleMem<1024 * 512>;
+  mem_t mem_target{memory_offset};
 
 public:
   std::array<reg_t, 32> registers{};
   reg_t PC{};
-  HtifMemoryDecorator<decltype(mem_target)> mem;
+  HtifProxy<VirtualWriterProxy<mem_t>> mem;
   SwitchCaseCSRs<reg_t> csrs{};
   explicit MachineState(SimulationCtx &ctx) : mem(ctx, mem_target) {};
 };
