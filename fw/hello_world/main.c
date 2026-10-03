@@ -25,7 +25,7 @@ int main(void) {
   htif_write(msg, sizeof(msg) - 1);
   /* Halt execution */
   while (1) {
-    auto code = 0;
+    int code = 0;
     tohost = (uint64_t)((code << 1) | 1);
     __asm__ volatile("wfi");
   }
