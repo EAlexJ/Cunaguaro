@@ -15,17 +15,18 @@ public:
     return backing.template read<T>(addr);
   };
   template <typename T> void write(uint64_t addr, T val) {
-    return backing.template write<T>(addr, val);
+    if constexpr (std::is_same_v<T, uint8_t>) {
+      static constexpr unsigned virtual_writer_addr = 0x10000000U;
+      [[unlikely]]
+      if (addr == virtual_writer_addr)
+        putc(val, stdout);
+      else
+        backing.template write<uint8_t>(addr, val);
+      return;
+    } else
+      return backing.template write<T>(addr, val);
   };
 
-  template <> void write<uint8_t>(uint64_t addr, uint8_t val) {
-    static constexpr unsigned virtual_writer_addr = 0x10000000U;
-    [[unlikely]]
-    if (addr == virtual_writer_addr)
-      putc(val, stdout);
-    else
-      backing.template write<uint8_t>(addr, val);
-  }
   void read(uint64_t addr, std::span<std::byte> content) const {
     backing.read(addr, content);
   }
