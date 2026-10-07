@@ -35,8 +35,11 @@ private:
 public:
   std::array<reg_t, 32> registers{};
   reg_t PC{};
+  SimulationCtx &ctx;
   HtifProxy<VirtualWriterProxy<mem_t>> mem;
   SwitchCaseCSRs<reg_t> csrs{};
-  explicit MachineState(SimulationCtx &ctx) : mem(ctx, mem_target) {};
+  explicit MachineState(SimulationCtx &ctx_)
+      : ctx(ctx_), mem(this->ctx, mem_target) {};
+  void simulate();
 };
 #endif
