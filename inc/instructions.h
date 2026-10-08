@@ -1,6 +1,7 @@
 #ifndef INSTRUCTIONS_H
 #define INSTRUCTIONS_H
 
+#include "general.h"
 #include "machine.h"
 #include "traps.h"
 #include "util.h"
@@ -107,8 +108,10 @@ constexpr auto instruction_functions = []() {
 
   set(Opcode::JAL, [](MachineState &state, const uint32_t instr) -> void {
     reg_t target_addr = sext<20>(j_imm(instr)) + state.PC;
-    if (target_addr % (IALIGN / 8))
-      throw rv_traps::Traps::Instruction_address_misaligned;
+    if (target_addr % (IALIGN / 8)) {
+      state.trap(rv_traps::Traps::Instruction_address_misaligned);
+      return;
+    }
     state.registers[rd(instr)] = state.PC += 4;
     state.PC = target_addr;
   });
@@ -116,8 +119,10 @@ constexpr auto instruction_functions = []() {
   set(Opcode::JALR, [](MachineState &state, const uint32_t instr) -> void {
     reg_t target_addr =
         (sext<12>(i_imm(instr)) + state.registers[rs1(instr)]) & ~1u;
-    if (target_addr % (IALIGN / 8))
-      throw rv_traps::Traps::Instruction_address_misaligned;
+    if (target_addr % (IALIGN / 8)) {
+      state.trap(rv_traps::Traps::Instruction_address_misaligned);
+      return;
+    }
     state.registers[rd(instr)] = state.PC + 4;
     state.PC = target_addr;
   });
@@ -127,8 +132,10 @@ constexpr auto instruction_functions = []() {
     const auto _rs2 = state.registers[rs2(instr)];
     if (_rs1 == _rs2) {
       const auto target_addr = state.PC + b_imm(instr);
-      if (target_addr % (IALIGN / 8))
-        throw rv_traps::Traps::Instruction_address_misaligned;
+      if (target_addr % (IALIGN / 8)) {
+        state.trap(rv_traps::Traps::Instruction_address_misaligned);
+        return;
+      }
       state.PC = target_addr;
     } else
       state.PC += 4;
@@ -139,8 +146,10 @@ constexpr auto instruction_functions = []() {
     const auto _rs2 = state.registers[rs2(instr)];
     if (_rs1 != _rs2) {
       const auto target_addr = state.PC + b_imm(instr);
-      if (target_addr % (IALIGN / 8))
-        throw rv_traps::Traps::Instruction_address_misaligned;
+      if (target_addr % (IALIGN / 8)) {
+        state.trap(rv_traps::Traps::Instruction_address_misaligned);
+        return;
+      }
       state.PC = target_addr;
     } else
       state.PC += 4;
@@ -151,8 +160,10 @@ constexpr auto instruction_functions = []() {
     const auto _rs2 = state.registers[rs2(instr)];
     if (std::make_signed_t<reg_t>(_rs1) < std::make_signed_t<reg_t>(_rs2)) {
       const auto target_addr = state.PC + b_imm(instr);
-      if (target_addr % (IALIGN / 8))
-        throw rv_traps::Traps::Instruction_address_misaligned;
+      if (target_addr % (IALIGN / 8)) {
+        state.trap(rv_traps::Traps::Instruction_address_misaligned);
+        return;
+      }
       state.PC = target_addr;
     } else
       state.PC += 4;
@@ -163,8 +174,10 @@ constexpr auto instruction_functions = []() {
     const auto _rs2 = state.registers[rs2(instr)];
     if (std::make_signed_t<reg_t>(_rs1) >= std::make_signed_t<reg_t>(_rs2)) {
       const auto target_addr = state.PC + b_imm(instr);
-      if (target_addr % (IALIGN / 8))
-        throw rv_traps::Traps::Instruction_address_misaligned;
+      if (target_addr % (IALIGN / 8)) {
+        state.trap(rv_traps::Traps::Instruction_address_misaligned);
+        return;
+      }
       state.PC = target_addr;
     } else
       state.PC += 4;
@@ -175,8 +188,10 @@ constexpr auto instruction_functions = []() {
     const auto _rs2 = state.registers[rs2(instr)];
     if (_rs1 < _rs2) {
       const auto target_addr = state.PC + b_imm(instr);
-      if (target_addr % (IALIGN / 8))
-        throw rv_traps::Traps::Instruction_address_misaligned;
+      if (target_addr % (IALIGN / 8)) {
+        state.trap(rv_traps::Traps::Instruction_address_misaligned);
+        return;
+      }
       state.PC = target_addr;
     } else
       state.PC += 4;
@@ -187,8 +202,10 @@ constexpr auto instruction_functions = []() {
     const auto _rs2 = state.registers[rs2(instr)];
     if (_rs1 >= _rs2) {
       const auto target_addr = state.PC + b_imm(instr);
-      if (target_addr % (IALIGN / 8))
-        throw rv_traps::Traps::Instruction_address_misaligned;
+      if (target_addr % (IALIGN / 8)) {
+        state.trap(rv_traps::Traps::Instruction_address_misaligned);
+        return;
+      }
       state.PC = target_addr;
     } else
       state.PC += 4;
@@ -196,65 +213,130 @@ constexpr auto instruction_functions = []() {
 
   set(Opcode::LB, [](MachineState &state, const uint32_t instr) -> void {
     auto load_addr = state.registers[rs1(instr)] + i_imm(instr);
-    state.registers[rd(instr)] =
-        sext<reg_t>((state.mem.read<uint8_t>(load_addr)));
+    auto &_rd = state.registers[rd(instr)];
+    uint8_t read_val{};
+    auto status = state.mem.read(load_addr, read_val);
+    [[unlikely]]
+    if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Load_access_fault);
+      return;
+    }
+    _rd = sext<reg_t>(read_val);
     state.PC += 4;
   });
 
   set(Opcode::LH, [](MachineState &state, const uint32_t instr) -> void {
     auto load_addr = state.registers[rs1(instr)] + i_imm(instr);
-    if (load_addr % 2)
-      throw rv_traps::Traps::Load_address_misaligned;
-    state.registers[rd(instr)] =
-        sext<reg_t>((state.mem.read<uint16_t>(load_addr)));
+    [[unlikely]]
+    if (load_addr % 2) {
+      state.trap(rv_traps::Traps::Load_address_misaligned);
+      return;
+    }
+    auto &_rd = state.registers[rd(instr)];
+    uint16_t read_val{};
+    auto status = state.mem.read(load_addr, read_val);
+    [[unlikely]]
+    if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Load_access_fault);
+      return;
+    }
+    _rd = sext<reg_t>(read_val);
     state.PC += 4;
   });
 
   set(Opcode::LW, [](MachineState &state, const uint32_t instr) -> void {
     auto load_addr = state.registers[rs1(instr)] + i_imm(instr);
-    if (load_addr % 4)
-      throw rv_traps::Traps::Load_address_misaligned;
-    state.registers[rd(instr)] =
-        sext<reg_t>((state.mem.read<uint32_t>(load_addr)));
+    [[unlikely]]
+    if (load_addr % 4) {
+      state.trap(rv_traps::Traps::Load_address_misaligned);
+      return;
+    }
+    auto &_rd = state.registers[rd(instr)];
+    uint32_t read_val{};
+    auto status = state.mem.read(load_addr, read_val);
+    [[unlikely]]
+    if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Load_access_fault);
+      return;
+    }
+    _rd = sext<reg_t>(read_val);
     state.PC += 4;
   });
 
   set(Opcode::LBU, [](MachineState &state, const uint32_t instr) -> void {
     auto load_addr = state.registers[rs1(instr)] + i_imm(instr);
-    state.registers[rd(instr)] = state.mem.read<uint8_t>(load_addr);
+    auto &_rd = state.registers[rd(instr)];
+    uint8_t read_val{};
+    auto status = state.mem.read(load_addr, read_val);
+    [[unlikely]]
+    if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Load_access_fault);
+      return;
+    }
+    _rd = read_val;
     state.PC += 4;
   });
 
   set(Opcode::LHU, [](MachineState &state, const uint32_t instr) -> void {
     auto load_addr = state.registers[rs1(instr)] + i_imm(instr);
-    if (load_addr % 2)
-      throw rv_traps::Traps::Load_address_misaligned;
-    state.registers[rd(instr)] = state.mem.read<uint16_t>(load_addr);
+    [[unlikely]]
+    if (load_addr % 2) {
+      state.trap(rv_traps::Traps::Load_address_misaligned);
+      return;
+    }
+    auto &_rd = state.registers[rd(instr)];
+    uint16_t read_val{};
+    auto status = state.mem.read(load_addr, read_val);
+    [[unlikely]]
+    if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Load_access_fault);
+      return;
+    }
+    _rd = read_val;
     state.PC += 4;
   });
 
   set(Opcode::SB, [](MachineState &state, const uint32_t instr) -> void {
     auto store_addr = state.registers[rs1(instr)] + s_imm(instr);
-    state.mem.write<uint8_t>(store_addr,
-                             static_cast<uint8_t>(state.registers[rs2(instr)]));
+    auto status = state.mem.write(
+        store_addr, static_cast<uint8_t>(state.registers[rs2(instr)]));
+    [[unlikely]]
+    if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Store_AMO_access_fault);
+      return;
+    }
     state.PC += 4;
   });
 
   set(Opcode::SH, [](MachineState &state, const uint32_t instr) -> void {
     auto store_addr = state.registers[rs1(instr)] + s_imm(instr);
-    if (store_addr % 2)
-      throw rv_traps::Traps::Store_AMO_address_misaligned;
-    state.mem.write<uint16_t>(
+    [[unlikely]] if (store_addr % 2) {
+      state.trap(rv_traps::Traps::Store_AMO_address_misaligned);
+      return;
+    }
+    auto status = state.mem.write(
         store_addr, static_cast<uint16_t>(state.registers[rs2(instr)]));
+    [[unlikely]]
+    if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Store_AMO_access_fault);
+      return;
+    }
     state.PC += 4;
   });
 
   set(Opcode::SW, [](MachineState &state, const uint32_t instr) -> void {
     auto store_addr = state.registers[rs1(instr)] + s_imm(instr);
-    if (store_addr % 4)
-      throw rv_traps::Traps::Store_AMO_address_misaligned;
-    state.mem.write<uint32_t>(
+    [[unlikely]] if (store_addr % 4) {
+      state.trap(rv_traps::Traps::Store_AMO_address_misaligned);
+      return;
+    }
+    auto status = state.mem.write(
         store_addr, static_cast<uint32_t>(state.registers[rs2(instr)]));
+    [[unlikely]]
+    if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Store_AMO_access_fault);
+      return;
+    }
     state.PC += 4;
   });
 
@@ -390,22 +472,27 @@ constexpr auto instruction_functions = []() {
       [](MachineState &state, const uint32_t) -> void { state.PC += 4; });
 
   set(Opcode::ECALL, [](MachineState &state, const uint32_t) -> void {
-    throw rv_traps::Traps::Environment_call_from_M_mode;
-    state.PC += 4;
+    state.trap(rv_traps::Traps::Environment_call_from_M_mode);
   });
 
   set(Opcode::EBREAK, [](MachineState &state, const uint32_t) -> void {
-    throw rv_traps::Traps::Breakpoint;
-    state.PC += 4;
+    state.trap(rv_traps::Traps::Breakpoint);
   });
 
   set(Opcode::CSRRW, [](MachineState &state, const uint32_t instr) -> void {
     auto &_rd = state.registers[rd(instr)];
     auto _rs1 = state.registers[rs1(instr)];
     auto _csr = csr(instr);
-    if (rd(instr))
-      state.csrs.read(_csr, _rd);
-    state.csrs.write(_csr, _rs1);
+    reg_t maybe_rd{};
+    auto status = state.csrs.read(_csr, maybe_rd);
+    [[unlikely]] if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Illegal_instruction);
+      return;
+    }
+    if (rd(instr)) {
+      _rd = maybe_rd;
+    }
+    auto _ = state.csrs.write(_csr, _rs1);
     state.PC += 4;
   });
 
@@ -413,9 +500,14 @@ constexpr auto instruction_functions = []() {
     auto &_rd = state.registers[rd(instr)];
     auto _rs1 = state.registers[rs1(instr)];
     auto _csr = csr(instr);
-    state.csrs.read(_csr, _rd);
+
+    auto status = state.csrs.read(_csr, _rd);
+    [[unlikely]] if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Illegal_instruction);
+      return;
+    }
     if (rs1(instr))
-      state.csrs.write(_csr, _rd | _rs1);
+      auto _ = state.csrs.write(_csr, _rd | _rs1);
     state.PC += 4;
   });
 
@@ -423,9 +515,13 @@ constexpr auto instruction_functions = []() {
     auto &_rd = state.registers[rd(instr)];
     auto _rs1 = state.registers[rs1(instr)];
     auto _csr = csr(instr);
-    state.csrs.read(_csr, _rd);
+    auto status = state.csrs.read(_csr, _rd);
+    [[unlikely]] if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Illegal_instruction);
+      return;
+    }
     if (rs1(instr))
-      state.csrs.write(_csr, _rd & ~_rs1);
+      auto _ = state.csrs.write(_csr, _rd & ~_rs1);
     state.PC += 4;
   });
 
@@ -433,9 +529,16 @@ constexpr auto instruction_functions = []() {
     auto &_rd = state.registers[rd(instr)];
     auto uimm = u_imm_4(instr);
     auto _csr = csr(instr);
-    if (rd(instr))
-      state.csrs.read(_csr, _rd);
-    state.csrs.write(_csr, uimm);
+    reg_t maybe_rd{};
+    auto status = state.csrs.read(_csr, maybe_rd);
+    [[unlikely]] if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Illegal_instruction);
+      return;
+    }
+    if (rd(instr)) {
+      _rd = maybe_rd;
+    }
+    auto _ = state.csrs.write(_csr, uimm);
     state.PC += 4;
   });
 
@@ -443,9 +546,13 @@ constexpr auto instruction_functions = []() {
     auto &_rd = state.registers[rd(instr)];
     auto uimm = u_imm_4(instr);
     auto _csr = csr(instr);
-    state.csrs.read(_csr, _rd);
+    auto status = state.csrs.read(_csr, _rd);
+    [[unlikely]] if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Illegal_instruction);
+      return;
+    }
     if (uimm)
-      state.csrs.write(_csr, _rd | uimm);
+      auto _ = state.csrs.write(_csr, _rd | uimm);
     state.PC += 4;
   });
 
@@ -453,9 +560,13 @@ constexpr auto instruction_functions = []() {
     auto &_rd = state.registers[rd(instr)];
     auto uimm = u_imm_4(instr);
     auto _csr = csr(instr);
-    state.csrs.read(_csr, _rd);
+    auto status = state.csrs.read(_csr, _rd);
+    [[unlikely]] if (status != status::Ok) {
+      state.trap(rv_traps::Traps::Illegal_instruction);
+      return;
+    }
     if (uimm)
-      state.csrs.write(_csr, _rd & ~uimm);
+      auto _ = state.csrs.write(_csr, _rd & ~uimm);
     state.PC += 4;
   });
 

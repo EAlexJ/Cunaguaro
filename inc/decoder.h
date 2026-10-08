@@ -121,7 +121,7 @@ struct Decoder {
       if ((instr & entry.mask) == entry.value)
         return entry.instr;
     }
-    throw rv_traps::Traps::Instruction_access_fault;
+    return Opcode::ILLEGAL;
   }
 };
 } // namespace loop_decoder

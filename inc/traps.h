@@ -15,8 +15,9 @@ enum class Traps : size_t {
   Store_AMO_address_misaligned = 6,
   Store_AMO_access_fault = 7,
   Environment_call_from_M_mode = 11,
+  None,
 };
-constexpr std::array<std::string_view, 12> trap_strings{
+constexpr std::array<std::string_view, 13> trap_strings{
     {"Instruction_address_misaligned", "Instruction_access_fault",
      "Illegal_instruction", "Breakpoint", "Load_address_misaligned",
      "Load_access_fault", "Store_AMO_address_misaligned",

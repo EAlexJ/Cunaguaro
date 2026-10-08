@@ -5,6 +5,7 @@
 #include "memory/simple_mem.h"
 #include "memory/virtual_writer_proxy.h"
 #include "simulation_ctx.h"
+#include "traps.h"
 #include <array>
 
 constexpr auto memory_offset = 0x80000000;
@@ -30,6 +31,11 @@ class MachineState {
 private:
   using mem_t = SimpleMem<1024 * 512>;
   mem_t mem_target{memory_offset};
+  struct {
+    rv_traps::Traps trap = rv_traps::Traps::None;
+    reg_t mtval{};
+  } pending_trap;
+  void step();
 
 public:
   std::array<reg_t, 32> registers{};
@@ -44,5 +50,8 @@ public:
     ctx.exit_code = code;
     ctx.should_exit = true;
   }
+  void trap(rv_traps::Traps which, reg_t mtval = 0) {
+    pending_trap = {which, mtval};
+  };
 };
 #endif

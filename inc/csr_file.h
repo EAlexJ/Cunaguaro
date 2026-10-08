@@ -1,7 +1,7 @@
 #ifndef CSR_FILE_H
 #define CSR_FILE_H
 
-#include "traps.h"
+#include "general.h"
 #include <cstddef>
 #include <cstdint>
 enum class Riscv_Csrs {
@@ -97,8 +97,8 @@ constexpr auto MSTATUSH_WRITABLE_MASK = 0;
 template <typename reg_t, size_t IALIGN = 32> class SwitchCaseCSRs {
   struct {
     uint64_t mstatus = 0;
-    //          11->RV64  ZXYWVUTSRQPONMLKJIHGFEDCBA
-    //          01->RV32  --X-VU-S-Q---M---IH-FEDCBA
+    //          11->RV64   ZXYWVUTSRQPONMLKJIHGFEDCBA
+    //          01->RV32   --X-VU-S-Q---M---IH-FEDCBA
     reg_t misa = 0b01'0000'00000000000000000100000000;
     reg_t mie = 0;
     reg_t mtvec = 0;
@@ -113,125 +113,131 @@ template <typename reg_t, size_t IALIGN = 32> class SwitchCaseCSRs {
 public:
   uint64_t &mcycle = backing.mcycle;
   uint64_t &minstret = backing.minstret;
+  reg_t &mtval = backing.mtval;
+  reg_t &mepc = backing.mepc;
+  reg_t &mcause = backing.mcause;
+  reg_t &mtvec = backing.mtvec;
 
-  void read(const auto csr_id, reg_t &val) {
+  [[nodiscard]] status read(const auto csr_id, reg_t &val) {
     switch ((static_cast<Riscv_Csrs>(csr_id))) {
       using enum Riscv_Csrs;
     case mstatus: {
       val = static_cast<reg_t>(backing.mstatus);
-      return;
+      break;
     }
     case misa: {
       val = backing.misa;
-      return;
+      break;
     }
     case mie: {
       val = backing.mie;
-      return;
+      break;
     }
     case mtvec: {
       val = backing.mtvec;
-      return;
+      break;
     }
     case mstatush: {
       val = static_cast<reg_t>(backing.mstatus >> 32);
-      return;
+      break;
     }
     case mepc: {
       val = backing.mepc;
-      return;
+      break;
     }
     case mcause: {
       val = backing.mcause;
-      return;
+      break;
     }
     case mtval: {
       val = backing.mtval;
-      return;
+      break;
     }
     case mip: {
       val = backing.mip;
-      return;
+      break;
     }
     case mcycle: {
       val = static_cast<reg_t>(backing.mcycle);
-      return;
+      break;
     }
     case minstret: {
       val = static_cast<reg_t>(backing.minstret);
-      return;
+      break;
     }
     case mcycleh: {
       val = static_cast<reg_t>(backing.mcycle >> 32);
-      return;
+      break;
     }
     case minstreth: {
       val = static_cast<reg_t>(backing.minstret >> 32);
-      return;
+      break;
     }
     default:
-      throw rv_traps::Traps::Illegal_instruction;
+      return status::Error;
     }
+    return status::Ok;
   };
 
-  void write(auto csr_id, const reg_t val) {
+  [[nodiscard]] status write(auto csr_id, const reg_t val) {
     switch ((static_cast<Riscv_Csrs>(csr_id))) {
       using enum Riscv_Csrs;
     case mstatus: {
       backing.mstatus = (val & MSTATUS_WRITABLE_MASK) | MSTATUS_HARDWIRED;
     }
     case misa: {
-      return;
+      break;
     }
     case mie: {
       backing.mie = val & MIE_WRITABLE_MASK;
-      return;
+      break;
     }
     case mtvec: {
       backing.mtvec = val;
-      return;
+      break;
     }
     case mstatush:
-      return;
+      break;
     case mepc: {
       constexpr reg_t mask =
           IALIGN == 32 ? static_cast<reg_t>(~0b11) : static_cast<reg_t>(~0b1);
       backing.mepc = val & mask;
-      return;
+      break;
     };
     case mcause: {
       backing.mcause = val;
-      return;
+      break;
     }
     case mtval: {
       backing.mtval = val;
-      return;
+      break;
     }
     case mip: {
       backing.mip = val;
-      return;
+      break;
     }
     case mcycle: {
       backing.mcycle = (backing.mcycle & 0xFFFFFFFF00000000) | val;
-      return;
+      break;
     }
     case minstret: {
       backing.minstret = (backing.minstret & 0xFFFFFFFF00000000) | val;
-      return;
+      break;
     }
     case mcycleh: {
       backing.mcycle =
           (backing.mcycle & 0xFFFFFFFF) | static_cast<uint64_t>(val) << 32;
-      return;
+      break;
     }
     case minstreth: {
       backing.minstret =
           (backing.minstret & 0xFFFFFFFF) | static_cast<uint64_t>(val) << 32;
-      return;
+      break;
     }
     default:
-      throw rv_traps::Traps::Illegal_instruction;
+      return status::Error;
     }
+    return status::Ok;
   };
 };
 #endif

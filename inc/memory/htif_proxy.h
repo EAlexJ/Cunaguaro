@@ -1,5 +1,6 @@
 #ifndef HTIF_H
 #define HTIF_H
+#include "general.h"
 #include "memory/memory.h"
 #include "simulation_ctx.h"
 #include <cassert>
@@ -26,31 +27,32 @@ public:
   explicit HtifProxy(SimulationCtx &ctx, BackingMem mem)
       : ctx_(ctx), backing(std::move(mem)) {};
 
-  template <typename T> T read(uint64_t addr) const {
-    return backing.template read<T>(addr);
+  template <typename T> [[nodiscard]] status read(uint64_t addr, T &val) const {
+    return backing.template read<T>(addr, val);
   };
 
-  template <typename T> void write(uint64_t addr, T val) {
+  template <typename T> [[nodiscard]] status write(uint64_t addr, T val) {
     if constexpr (sizeof(T) == 4) {
       if (tohost_addr && addr == tohost_addr) [[unlikely]] {
         tohost_val = (tohost_val & ~std::numeric_limits<T>::max()) | val;
-        return;
+        return status::Ok;
       } else if (tohost_addr && addr == tohost_addr + 4) [[unlikely]] {
         tohost_val = static_cast<uint64_t>(val) << 32 |
                      static_cast<uint32_t>(tohost_val);
         handle_tohost();
-        return;
+        return status::Ok;
       }
     }
-    backing.template write<T>(addr, val);
+    return backing.template write<T>(addr, val);
   };
 
   void set_tohost_addr(uint64_t th_addr) { tohost_addr = th_addr; }
-  void read(uint64_t addr, std::span<std::byte> content) const {
-    backing.read(addr, content);
+  [[nodiscard]] status read(uint64_t addr, std::span<std::byte> content) const {
+    return backing.read(addr, content);
   }
-  void write(uint64_t addr, std::span<const std::byte> content) {
-    backing.write(addr, content);
+  [[nodiscard]] status write(uint64_t addr,
+                             std::span<const std::byte> content) {
+    return backing.write(addr, content);
   }
   void handle_tohost() {
     auto dev = static_cast<htif_devs>(tohost_val >> 56 & 0xFF);
@@ -67,11 +69,11 @@ public:
         return;
       }
       std::array<uint64_t, 8> payload{};
-      try {
-        backing.read(tohost_val, std::as_writable_bytes(std::span(payload)));
-      } catch (std::out_of_range &) {
+      auto status =
+          backing.read(tohost_val, std::as_writable_bytes(std::span(payload)));
+      if (status != status::Ok)
         throw std::runtime_error("reading tohost payload went wrong");
-      }
+
       do_htif_syscall(payload);
       return;
     }
@@ -92,11 +94,10 @@ public:
       auto ptr = payload[2];
       auto len = payload[3];
       std::vector<std::byte> buf(len);
-      try {
-        backing.read(ptr, std::as_writable_bytes(std::span(buf)));
-      } catch (std::out_of_range &) {
+      auto status = backing.read(ptr, std::as_writable_bytes(std::span(buf)));
+      if (status != status::Ok)
         throw std::runtime_error("reading tohost SYS_WRITE content went wrong");
-      }
+
       [[maybe_unused]]
       auto ret = ::write(fd, buf.data(), buf.size());
     } else

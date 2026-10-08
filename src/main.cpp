@@ -1,9 +1,6 @@
-#include "decoder.h"
-#include "instructions.h"
+
 #include "loader.h"
 #include "machine.h"
-#include "traps.h"
-#include <array>
 #include <cassert>
 #include <chrono>
 #include <cstdint>

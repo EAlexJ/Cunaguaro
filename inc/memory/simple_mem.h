@@ -1,5 +1,6 @@
 #ifndef SIMPLE_MEM_H
 #define SIMPLE_MEM_H
+#include "general.h"
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -7,45 +8,50 @@
 #include <cstdio>
 #include <cstring>
 #include <span>
-#include <stdexcept>
+#include <type_traits>
 template <size_t size> class SimpleMem {
 
   std::array<std::byte, size> backing{};
   const size_t offset;
-
-  constexpr void check_bounds(uint64_t addr, size_t size_) const {
+  [[nodiscard]]
+  constexpr bool valid_bounds(uint64_t addr, size_t size_) const {
     [[unlikely]]
     if (addr < offset || (addr - offset) + size_ > backing.size())
-      throw std::out_of_range("Trying to read SimpleMem out of bounds");
+      return false;
+    return true;
   }
 
 public:
   SimpleMem(const unsigned off) : offset(off) {};
 
-  constexpr void read(uint64_t addr, std::span<std::byte> content) const {
-    check_bounds(addr, content.size_bytes());
+  [[nodiscard]] constexpr status
+  read(uint64_t addr, std::span<std::byte> content) const noexcept {
+    if (!valid_bounds(addr, content.size_bytes()))
+      return status::Error;
     const auto eff_addr = addr - offset;
     std::memcpy(content.data(), backing.data() + eff_addr,
                 content.size_bytes());
+    return status::Ok;
   }
-  constexpr void write(uint64_t addr, std::span<const std::byte> content) {
-    check_bounds(addr, content.size_bytes());
+  [[nodiscard]] constexpr status
+  write(uint64_t addr, std::span<const std::byte> content) noexcept {
+    if (!valid_bounds(addr, content.size_bytes()))
+      return status::Error;
     const auto eff_addr = addr - offset;
     std::memcpy(backing.data() + eff_addr, content.data(),
                 content.size_bytes());
+    return status::Ok;
   }
 
   template <typename T>
-    requires std::is_trivially_copyable_v<T>
-  [[nodiscard]] constexpr T read(uint64_t addr) const {
-    T val;
-    read(addr, std::as_writable_bytes(std::span{&val, 1}));
-    return val;
+    requires std::is_trivial_v<T>
+  [[nodiscard]] constexpr status read(uint64_t addr, T &val) const noexcept {
+    return read(addr, std::as_writable_bytes(std::span{&val, 1}));
   }
   template <typename T>
-    requires std::is_trivially_copyable_v<T>
-  constexpr void write(uint64_t addr, T val) {
-    write(addr, std::as_bytes(std::span{&val, 1}));
+    requires std::is_trivial_v<T>
+  [[nodiscard]] constexpr status write(uint64_t addr, T val) noexcept {
+    return write(addr, std::as_bytes(std::span{&val, 1}));
   }
 };
 

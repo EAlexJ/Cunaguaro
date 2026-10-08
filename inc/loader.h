@@ -9,6 +9,7 @@
 #include <cstring>
 #include <filesystem>
 #include <map>
+#include <stdexcept>
 #include <vector>
 class MemoryMappedFile {
 public:
@@ -48,13 +49,20 @@ auto load_elf_file(TargetMemory &underlying, std::filesystem::path path,
       uint64_t load_addr = (ph)[i].p_paddr;
       if ((ph)[i].p_filesz) {
         assert(loaded_file.size >= (ph)[i].p_offset + (ph)[i].p_filesz);
-        underlying.write(load_addr,
-                         {fptr + (ph)[i].p_offset, (ph)[i].p_filesz});
+        auto status = underlying.write(
+            load_addr, {fptr + (ph)[i].p_offset, (ph)[i].p_filesz});
+        if (status != status::Ok) {
+          throw std::runtime_error("ELF loading went wrong");
+        }
       }
       if (size_t pad = (ph)[i].p_memsz - (ph)[i].p_filesz) {
         zeros.resize(pad);
-        underlying.write(load_addr + (ph)[i].p_filesz,
-                         {reinterpret_cast<std::byte *>(zeros.data()), pad});
+        auto status = underlying.write(
+            load_addr + (ph)[i].p_filesz,
+            {reinterpret_cast<std::byte *>(zeros.data()), pad});
+        if (status != status::Ok) {
+          throw std::runtime_error("ELF loading went wrong");
+        }
       }
     }
   }
