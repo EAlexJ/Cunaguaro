@@ -8,7 +8,6 @@
 #include <array>
 
 constexpr auto memory_offset = 0x80000000;
-static int terminate = false;
 
 template <size_t V>
 concept valid_XLEN = requires() { V == 32 || V == 64; };
@@ -41,5 +40,9 @@ public:
   explicit MachineState(SimulationCtx &ctx_)
       : ctx(ctx_), mem(this->ctx, mem_target) {};
   void simulate();
+  void request_stop(int code) {
+    ctx.exit_code = code;
+    ctx.should_exit = true;
+  }
 };
 #endif

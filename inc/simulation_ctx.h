@@ -2,7 +2,7 @@
 #define SIMULATION_CTX_H
 struct SimulationCtx {
   int exit_code{};
-  bool should_exit{};
   unsigned long instr_count{};
+  bool should_exit{};
 };
 #endif

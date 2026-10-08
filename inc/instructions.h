@@ -459,8 +459,9 @@ constexpr auto instruction_functions = []() {
     state.PC += 4;
   });
 
-  set(Opcode::WFI,
-      [](MachineState &, const uint32_t) -> void { terminate = true; });
+  set(Opcode::WFI, [](MachineState &state, const uint32_t) -> void {
+    state.request_stop(1);
+  });
 
   return table;
 }();
