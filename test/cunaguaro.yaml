@@ -216,13 +216,13 @@ params:
   MTVEC_MODES: [0, 1]
   MTVEC_BASE_ALIGNMENT_DIRECT: 4
   MTVEC_BASE_ALIGNMENT_VECTORED: 4
-  MTVEC_ILLEGAL_WRITE_BEHAVIOR: retain
-  NUM_PMP_ENTRIES: 16
-  PMP_GRANULARITY: 2
-  NUM_USABLE_PMP_ENTRIES: 16
-  PMP_NA4_SUPPORTED: false
-  PMP_NAPOT_SUPPORTED: true
-  PMP_TOR_SUPPORTED: false
+  MTVEC_ILLEGAL_WRITE_BEHAVIOR: custom
+  NUM_PMP_ENTRIES: 0
+  # PMP_GRANULARITY: 2
+  # NUM_USABLE_PMP_ENTRIES: 16
+  # PMP_NA4_SUPPORTED: false
+  # PMP_NAPOT_SUPPORTED: true
+  # PMP_TOR_SUPPORTED: false
   HPM_COUNTER_EN:
     [
       false,
@@ -259,42 +259,42 @@ params:
       true,
     ]
   HPM_EVENTS: [0]
-  MCOUNTINHIBIT_IMPLEMENTED: true
-  COUNTINHIBIT_EN:
-    [
-      true,
-      false,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-    ]
+  MCOUNTINHIBIT_IMPLEMENTED: false
+  # COUNTINHIBIT_EN:
+  #   [
+  #     true,
+  #     false,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #     true,
+  #   ]
   MCOUNTENABLE_EN:
     [
       false,
