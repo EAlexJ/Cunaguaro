@@ -14,6 +14,7 @@ void MachineState::simulate() {
       csrs.mepc = PC;
       csrs.mcause = static_cast<reg_t>(pending_trap.trap);
       PC = csrs.mtvec;
+      pending_trap = {rv_traps::Traps::None, 0};
     }
   }
 }
