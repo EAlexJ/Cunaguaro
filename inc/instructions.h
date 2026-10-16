@@ -3,66 +3,10 @@
 
 #include "general.h"
 #include "machine.h"
+#include "opcode.h"
 #include "traps.h"
 #include "util.h"
-#include <algorithm>
-#include <array>
-#include <cstddef>
 #include <cstdint>
-#include <type_traits>
-// TODO: set backing value to a byte to see perf impact
-enum class Opcode {
-  LUI,
-  AUIPC,
-  JAL,
-  JALR,
-  BEQ,
-  BNE,
-  BLT,
-  BGE,
-  BLTU,
-  BGEU,
-  LB,
-  LH,
-  LW,
-  LBU,
-  LHU,
-  SB,
-  SH,
-  SW,
-  ADDI,
-  SLTI,
-  SLTIU,
-  XORI,
-  ORI,
-  ANDI,
-  SLLI,
-  SRLI,
-  SRAI,
-  ADD,
-  SUB,
-  SLL,
-  SLT,
-  SLTU,
-  XOR,
-  SRL,
-  SRA,
-  OR,
-  AND,
-  FENCE,
-  ECALL,
-  EBREAK,
-  CSRRW,
-  CSRRS,
-  CSRRC,
-  CSRRWI,
-  CSRRSI,
-  CSRRCI,
-  WFI,
-  COUNT,
-  ILLEGAL,
-  SYSTEM_PRIV,
-};
 
 constexpr auto rd(uint32_t instr) { return bit_range<11, 7>(instr); }
 constexpr auto rs1(uint32_t instr) { return bit_range<19, 15>(instr); }
