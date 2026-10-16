@@ -1,14 +1,19 @@
 #ifndef DECODER_H
 #define DECODER_H
 
-#include "instructions.h"
-#include "machine.h"
+#include "isa.h"
+#include "opcode.h"
+#include "util.h"
 #include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
+#include <limits>
+#include <map>
 #include <optional>
 #include <ranges>
+#include <vector>
 
 namespace loop_decoder {
 struct InstructionDescription {
@@ -116,7 +121,7 @@ constexpr std::array<const InstructionDescription, instruction_count>
     }};
 
 struct Decoder {
-  static Opcode decode(const reg_t instr) {
+  static Opcode decode(const uint32_t instr) {
     for (const auto &entry : instructions) {
       if ((instr & entry.mask) == entry.value)
         return entry.instr;
@@ -250,4 +255,28 @@ public:
   }
 };
 } // namespace lut_decoder
+
+namespace cached_decoder {
+class Decoder {
+  struct cache_entry {
+    uint32_t tag_pc{std::numeric_limits<uint32_t>::max()};
+    Opcode opcode;
+  };
+  std::array<cache_entry, 4096> cache;
+
+public:
+  Opcode cached_decode(reg_t PC, uint32_t instr) {
+    auto idx = PC >> 2 & (cache.size() - 1);
+    auto &entry = cache[idx];
+    if (entry.tag_pc == PC)
+      return entry.opcode;
+    else {
+      auto new_opcode = lut_decoder::Decoder::decode(instr);
+      entry = {PC, new_opcode};
+      return new_opcode;
+    };
+  }
+};
+} // namespace cached_decoder
+
 #endif
