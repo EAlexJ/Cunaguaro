@@ -46,7 +46,7 @@ void MachineState::step() {
   }
 
   //  Execute
-  instruction_functions[static_cast<size_t>(idx)](*this, instr_word);
+  execute_instruction(idx, *this, instr_word);
   registers[0] = 0; // Force x0 to 0
   ctx.instr_count++;
   csrs.minstret++;
