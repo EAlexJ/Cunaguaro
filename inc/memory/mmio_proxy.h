@@ -1,16 +1,16 @@
-#ifndef VIRTUAL_WRITER_PROXY_H
-#define VIRTUAL_WRITER_PROXY_H
+#ifndef MMIO_PROXY_H
+#define MMIO_PROXY_H
 
 #include "general.h"
 #include "memory.h"
 #include <cstdint>
 #include <cstdio>
 
-template <MemoryTarget BackingMem> class VirtualWriterProxy {
+template <MemoryTarget BackingMem> class MMIOProxy {
   BackingMem backing;
 
 public:
-  VirtualWriterProxy(BackingMem backing_) : backing(std::move(backing_)) {};
+  MMIOProxy(BackingMem backing_) : backing(std::move(backing_)) {};
   template <typename T>
   [[nodiscard]]
   status read(uint64_t addr, T &val) const {

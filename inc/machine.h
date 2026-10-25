@@ -26,7 +26,7 @@ public:
   std::array<reg_t, 32> registers{};
   reg_t PC{};
   SimulationCtx &ctx;
-  HtifProxy<VirtualWriterProxy<mem_t>> mem;
+  HtifProxy<MMIOProxy<mem_t>> mem;
   cached_decoder::Decoder decoder;
   SwitchCaseCSRs<reg_t> csrs{};
   explicit MachineState(SimulationCtx &ctx_)
