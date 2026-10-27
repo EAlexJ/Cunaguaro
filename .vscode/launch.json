@@ -8,18 +8,31 @@
             "name": "(lldb) Launch",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/build/Debug/iss-sim",
-            "args": ["${workspaceRoot}/fw/riscv-tests/dhrystone.riscv"],
+            "program": "${workspaceRoot}/build/clang/Debug/cunaguaro",
+            "args": [
+                "${workspaceRoot}/fw/riscv-tests/rsort.riscv"
+            ],
             "cwd": "${fileDirname}",
         },
-                {
+        {
+            "name": "(lldb) Launch Debug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/build/clang/Debug/cunaguaro",
+            "args": [
+                "${workspaceRoot}/fw/riscv-tests/rsort.riscv"
+            ],
+            "cwd": "${fileDirname}",
+        },
+        {
             "name": "(lldb) Launch ACT",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceRoot}/build/Debug/iss-sim",
-            "args": ["${workspaceRoot}/work/iss/elfs/rv32i/Zicsr/Zicsr-csrrci-00.elf"],
+            "program": "${workspaceRoot}/build/clang/Debug/cunaguaro",
+            "args": [
+                "${workspaceRoot}/work/cunaguaro/elfs/rv32i/I/I-add-00.elf"
+            ],
             "cwd": "${fileDirname}",
         }
-
     ]
 }
