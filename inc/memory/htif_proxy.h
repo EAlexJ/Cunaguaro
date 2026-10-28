@@ -4,13 +4,14 @@
 #include "memory/memory.h"
 #include "simulation_ctx.h"
 #include <cassert>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <print>
 #include <span>
-#include <type_traits>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 
 enum class htif_devs : uint8_t { Syscall = 0, Console = 1, Disk = 2 };
@@ -24,8 +25,13 @@ template <MemoryTarget BackingMem> class HtifProxy {
   uint64_t tohost_val;
 
 public:
-  explicit HtifProxy(SimulationCtx &ctx, BackingMem mem)
-      : ctx_(ctx), backing(std::move(mem)) {};
+  explicit HtifProxy(SimulationCtx &ctx, BackingMem backing_)
+      : ctx_(ctx), backing(backing_) {};
+
+  template <typename T>
+    requires std::constructible_from<BackingMem, T &>
+  explicit HtifProxy(SimulationCtx &ctx, T &&backing_)
+      : ctx_(ctx), backing(std::forward<T>(backing_)){};
 
   template <typename T> [[nodiscard]] status read(uint64_t addr, T &val) const {
     return backing.template read<T>(addr, val);

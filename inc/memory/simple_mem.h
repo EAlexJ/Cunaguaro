@@ -23,6 +23,10 @@ template <size_t size> class SimpleMem {
 
 public:
   SimpleMem(const unsigned off) : offset(off) {};
+  SimpleMem(const SimpleMem &other) = delete;
+  SimpleMem &operator=(const SimpleMem &other) = delete;
+  SimpleMem(SimpleMem &&other) noexcept = default;
+  SimpleMem &operator=(const SimpleMem &&other) noexcept = default;
 
   [[nodiscard]] constexpr status
   read(uint64_t addr, std::span<std::byte> content) const noexcept {

@@ -3,14 +3,21 @@
 
 #include "general.h"
 #include "memory.h"
+#include <concepts>
 #include <cstdint>
 #include <cstdio>
+#include <utility>
 
 template <MemoryTarget BackingMem> class MMIOProxy {
   BackingMem backing;
 
 public:
-  MMIOProxy(BackingMem backing_) : backing(std::move(backing_)) {};
+  explicit MMIOProxy(BackingMem backing_) : backing(backing_) {};
+
+  template <typename T>
+    requires std::constructible_from<BackingMem, T &>
+  explicit MMIOProxy(T &&backing_) : backing(std::forward<T>(backing_)){};
+
   template <typename T>
   [[nodiscard]]
   status read(uint64_t addr, T &val) const {
