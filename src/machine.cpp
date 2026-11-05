@@ -38,7 +38,7 @@ void MachineState::step() {
   }
 
   // Decode
-  auto idx = decoder.cached_decode(PC, instr_word);
+  auto idx = decoder.decode(PC);
   [[unlikely]]
   if (idx == Opcode::ILLEGAL) {
     trap(rv_traps::Traps::Illegal_instruction);

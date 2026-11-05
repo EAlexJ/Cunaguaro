@@ -53,4 +53,33 @@ enum class Opcode {
   ILLEGAL,
   SYSTEM_PRIV,
 };
+constexpr bool isJump(Opcode op) {
+  switch (op) {
+    using enum Opcode;
+  case JAL:
+  case JALR:
+  case ECALL:
+  case EBREAK:
+    return true;
+  default:
+    return false;
+  }
+}
+constexpr bool isBranch(Opcode op) {
+  switch (op) {
+    using enum Opcode;
+  case BEQ:
+  case BGE:
+  case BGEU:
+  case BLT:
+  case BLTU:
+  case BNE:
+    return true;
+  default:
+    return false;
+  }
+}
+constexpr bool changesControlFlow(Opcode op) {
+  return isJump(op) || isBranch(op);
+}
 #endif

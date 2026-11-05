@@ -1,7 +1,9 @@
 #ifndef DECODER_H
 #define DECODER_H
 
+#include "general.h"
 #include "isa.h"
+#include "memory/memory.h"
 #include "opcode.h"
 #include "util.h"
 #include <array>
@@ -11,7 +13,9 @@
 #include <cstdlib>
 #include <limits>
 #include <optional>
+#include <print>
 #include <ranges>
+#include <vector>
 
 namespace loop_decoder {
 struct InstructionDescription {
@@ -277,4 +281,97 @@ public:
 };
 } // namespace cached_decoder
 
+namespace threaded_decoder {
+template <MemoryTarget InstructionMemory> class Decoder {
+private:
+  InstructionMemory &imem;
+  cached_decoder::Decoder backing_dec;
+
+  // FIXME: std::vector constructor seems to be taking up quite a lot of time
+  struct BasicBlock {
+    std::vector<Opcode> opcodes{};
+    std::vector<std::pair<reg_t, size_t>> following{};
+  };
+  using BBentry_t = std::pair<reg_t, BasicBlock>;
+  std::vector<BBentry_t> BasicBlocks;
+  bool valid_block_idx{false};
+  size_t cur_block_idx = 0;
+  size_t cur_in_block_idx = 0;
+
+  static constexpr size_t instr_size = 4;
+  constexpr void fill_BB(BasicBlock &BB, reg_t PC) {
+    uint32_t speculative_PC = PC;
+    Opcode last_decoded = Opcode::ILLEGAL;
+    reg_t speculated;
+    status status = status::Ok;
+    while (!changesControlFlow(last_decoded)) {
+      status = imem.template read<reg_t>(speculative_PC, speculated);
+      if (status == status::Error)
+        throw std::runtime_error("Decoding read went wrong");
+      speculative_PC += instr_size;
+      last_decoded = backing_dec.cached_decode(speculative_PC, speculated);
+      BB.opcodes.push_back(last_decoded);
+    }
+  };
+
+  size_t get_block_idx(reg_t PC, size_t prev_block_idx) {
+    // Look for chained block
+    if (BasicBlocks.size()) {
+      if (auto candidates = BasicBlocks[prev_block_idx].second.following;
+          candidates.size()) {
+        auto it =
+            std::ranges::find(candidates, PC, &std::pair<reg_t, size_t>::first);
+        if (it != candidates.end()) {
+          auto idx = static_cast<size_t>(std::distance(candidates.begin(), it));
+          [[maybe_unused]]
+          auto chained_idx = candidates[idx].second;
+          assert(PC == BasicBlocks[chained_idx].first);
+          return chained_idx;
+        }
+      }
+    }
+
+    // Look for previous block (no previous chain)
+    auto it = std::ranges::find(BasicBlocks.rbegin(), BasicBlocks.rend(), PC,
+                                &BBentry_t::first);
+    if (it != BasicBlocks.rend()) {
+      auto idx =
+          static_cast<size_t>(std::distance(BasicBlocks.begin(), it.base()));
+      size_t new_block_idx = idx - 1;
+      BasicBlocks[prev_block_idx].second.following.emplace_back(
+          std::make_pair(PC, new_block_idx));
+      return new_block_idx;
+    }
+
+    // create new block
+    auto new_BB = BasicBlock{};
+    fill_BB(new_BB, PC);
+    BasicBlocks.emplace_back(std::make_pair(PC, std::move(new_BB)));
+    auto new_block_idx = BasicBlocks.size() - 1;
+
+    if (BasicBlocks.size() > 1) {
+      BasicBlocks[prev_block_idx].second.following.emplace_back(
+          std::make_pair(PC, new_block_idx));
+    }
+    return new_block_idx;
+  }
+
+public:
+  Decoder(InstructionMemory &mem) : imem(mem) {};
+  Opcode decode(reg_t PC) {
+    if (!valid_block_idx) {
+      cur_block_idx = get_block_idx(PC, cur_block_idx);
+      valid_block_idx = true;
+      cur_in_block_idx = 0;
+    }
+    const auto &cur_block_opcodes = BasicBlocks[cur_block_idx].second.opcodes;
+    auto decoded = cur_block_opcodes[cur_in_block_idx];
+    cur_in_block_idx++;
+    if (cur_in_block_idx >= cur_block_opcodes.size()) {
+      valid_block_idx = false;
+    }
+    return decoded;
+  }
+};
+} // namespace threaded_decoder
 #endif
