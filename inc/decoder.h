@@ -280,7 +280,7 @@ public:
 };
 } // namespace cached_decoder
 
-namespace threaded_decoder {
+namespace basic_block_decoder {
 template <MemoryTarget InstructionMemory> class Decoder {
 private:
   enum { INVALID = std::numeric_limits<uint32_t>::max() };
@@ -383,5 +383,5 @@ public:
     return decoded;
   }
 };
-} // namespace threaded_decoder
+} // namespace basic_block_decoder
 #endif

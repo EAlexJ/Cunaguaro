@@ -27,7 +27,7 @@ public:
   reg_t PC{};
   SimulationCtx &ctx;
   HtifProxy<MMIOProxy<mem_t &>> mem;
-  threaded_decoder::Decoder<mem_t> decoder;
+  basic_block_decoder::Decoder<mem_t> decoder;
   SwitchCaseCSRs<reg_t> csrs{};
   explicit MachineState(SimulationCtx &ctx_)
       : ctx(ctx_), mem(ctx, mem_target), decoder(mem_target) {};
