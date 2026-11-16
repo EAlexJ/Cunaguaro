@@ -1,9 +1,15 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <array>
 #include <bitset>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <memory>
+#include <span>
 #include <type_traits>
+#include <vector>
 
 template <uint32_t upper, uint32_t lower, typename T>
   requires std::is_unsigned_v<T>
@@ -27,4 +33,26 @@ template <typename T, typename I> T sext(I init) {
       static_cast<std::make_signed_t<I>>(init)));
 }
 
+template <typename T> class chunked_allocator {
+  struct chunk {
+    std::array<T, 4096> mem;
+    size_t size = 0;
+  };
+  std::vector<std::unique_ptr<chunk>> chunks;
+
+public:
+  [[nodiscard("Take the span, you don't know where the elements ended up")]]
+  std::span<T> save_elements(std::span<T> elements) {
+    if (chunks.empty())
+      chunks.push_back(std::make_unique<chunk>());
+    auto &latest_chunk = chunks.back();
+    if (!((latest_chunk->mem.size() - latest_chunk->size) >= elements.size())) {
+      chunks.push_back(std::make_unique<chunk>());
+    }
+    T *dest = latest_chunk->mem.data() + latest_chunk->size;
+    std::memcpy(dest, elements.data(), elements.size_bytes());
+    latest_chunk->size += elements.size();
+    return {dest, elements.size()};
+  }
+};
 #endif

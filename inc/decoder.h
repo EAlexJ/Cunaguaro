@@ -14,7 +14,9 @@
 #include <limits>
 #include <optional>
 #include <ranges>
-#include <vector>
+#include <span>
+#include <unordered_map>
+#include <utility>
 
 namespace loop_decoder {
 struct InstructionDescription {
@@ -283,103 +285,99 @@ public:
 namespace basic_block_decoder {
 template <MemoryTarget InstructionMemory> class Decoder {
 private:
-  enum { INVALID = std::numeric_limits<uint32_t>::max() };
   InstructionMemory &imem;
   cached_decoder::Decoder backing_dec;
-  std::vector<Opcode> decoded_backing;
+
+  chunked_allocator<Opcode> backing;
 
   struct BasicBlock {
     const reg_t PC;
-    const uint32_t opcode_start_idx;
-    const uint32_t length;
-    const uint16_t instr_byte_size;
-    uint32_t fallthrough_idx = INVALID;
-    uint32_t jumped_to_idx = INVALID;
+    const std::span<Opcode> decoded;
+    const reg_t fallthrough_pc;
+    BasicBlock *fallthrough = nullptr;
+    BasicBlock *taken = nullptr;
   };
-  std::vector<BasicBlock> BasicBlocks;
+  std::unordered_map<reg_t, BasicBlock> BasicBlocks;
 
-  bool valid_block_idx{false};
-  uint32_t cur_block_idx = INVALID;
+  BasicBlock *cur_block = nullptr;
+  BasicBlock *prev_block = nullptr;
   uint32_t cur_in_block_idx = 0;
 
   static constexpr auto instr_size = 4;
-  uint32_t create_BB(reg_t PC) {
+  BasicBlock *create_BB(reg_t PC) {
     uint32_t speculative_PC = PC;
     reg_t speculated_instr;
 
+    std::array<Opcode, 256> cur_blk_decoded;
+    size_t running_idx = 0;
     Opcode last_decoded = Opcode::ILLEGAL;
     status status = status::Ok;
-
-    size_t start_size = decoded_backing.size();
-    size_t bb_start_idx = decoded_backing.size();
 
     while (!changesControlFlow(last_decoded)) {
       status = imem.template read<reg_t>(speculative_PC, speculated_instr);
       if (status == status::Error)
         throw std::runtime_error("Decoding read went wrong");
-      speculative_PC += instr_size;
       last_decoded =
           backing_dec.cached_decode(speculative_PC, speculated_instr);
-      decoded_backing.push_back(last_decoded);
+      speculative_PC += instr_size;
+      cur_blk_decoded[running_idx++] = last_decoded;
     }
-    auto bb_length = decoded_backing.size() - start_size;
-    BasicBlocks.push_back(
-        {.PC = PC,
-         .opcode_start_idx = static_cast<uint32_t>(bb_start_idx),
-         .length = static_cast<uint32_t>(bb_length),
-         .instr_byte_size = static_cast<uint16_t>(bb_length * instr_size)});
-    return static_cast<uint32_t>(BasicBlocks.size() - 1);
+
+    auto it = BasicBlocks.emplace(std::make_pair(
+        PC, BasicBlock{.PC = PC,
+                       .decoded = backing.save_elements(
+                           {cur_blk_decoded.begin(), running_idx}),
+                       .fallthrough_pc = speculative_PC}));
+    return &((*it.first).second);
   }
 
-  uint32_t get_block_idx(reg_t PC, uint32_t prev_block_idx) {
-    if (BasicBlocks.size()) {
-      BasicBlock &prev_block = BasicBlocks[prev_block_idx];
-
-      // Look for chained block
-      if (const auto valid_fallthrough = prev_block.fallthrough_idx != INVALID;
-          valid_fallthrough && BasicBlocks[prev_block.fallthrough_idx].PC == PC)
-        return prev_block.fallthrough_idx;
-      if (const auto valid_jumped_to = prev_block.jumped_to_idx != INVALID;
-          valid_jumped_to && BasicBlocks[prev_block.jumped_to_idx].PC == PC)
-        return prev_block.jumped_to_idx;
-
-      // Look for previous block (no previous chain)
-      auto it = std::ranges::find(BasicBlocks.rbegin(), BasicBlocks.rend(), PC,
-                                  &BasicBlock::PC);
-      if (it != BasicBlocks.rend()) {
-        auto idx = static_cast<uint32_t>(
-            std::distance(BasicBlocks.begin(), it.base()));
-        uint32_t new_block_idx = idx - 1;
-        auto expected_pc = prev_block.PC + prev_block.instr_byte_size;
-        if (PC == expected_pc) {
-          prev_block.fallthrough_idx = new_block_idx;
-        } else {
-          prev_block.jumped_to_idx = new_block_idx;
-        }
-        return new_block_idx;
+  BasicBlock *get_cur_block(reg_t PC) {
+    // fast lookup
+    if (prev_block) {
+      if (PC == prev_block->fallthrough_pc) {
+        if (prev_block->fallthrough)
+          return prev_block->fallthrough;
+      } else if (prev_block->taken) {
+        assert(PC != prev_block->fallthrough_pc);
+        return prev_block->taken;
       }
     }
 
-    // create new block
-    auto new_block_idx = create_BB(PC);
-    return new_block_idx;
+    // Slow lookup
+    if (auto elem = BasicBlocks.find(PC); elem != BasicBlocks.end()) {
+      return &((*elem).second);
+    }
+
+    // New block creation
+    return create_BB(PC);
   }
 
 public:
   Decoder(InstructionMemory &mem) : imem(mem) {};
   Opcode decode(reg_t PC) {
-    if (!valid_block_idx) {
-      cur_block_idx = get_block_idx(PC, cur_block_idx);
-      valid_block_idx = true;
+
+    if (!cur_block) {
+      cur_block = get_cur_block(PC);
       cur_in_block_idx = 0;
+
+      // Stiching
+      if (prev_block) {
+        if (PC == prev_block->fallthrough_pc)
+          prev_block->fallthrough = cur_block;
+        else
+          prev_block->taken = cur_block;
+      }
+      prev_block = nullptr;
     }
-    const auto &cur_bb = BasicBlocks[cur_block_idx];
-    auto decoded = decoded_backing[cur_bb.opcode_start_idx + cur_in_block_idx];
-    cur_in_block_idx++;
+
+    auto decoded = cur_block->decoded[cur_in_block_idx++];
     [[unlikely]]
-    if (cur_in_block_idx >= cur_bb.length) {
-      valid_block_idx = false;
+    if (cur_in_block_idx == cur_block->decoded.size()) {
+      if (isDeterministicJump(decoded))
+        prev_block = cur_block;
+      cur_block = nullptr;
     }
+
     return decoded;
   }
 };

@@ -51,20 +51,24 @@ enum class Opcode {
   WFI,
   COUNT,
   ILLEGAL,
-  SYSTEM_PRIV,
+  SYSTEM_PRIV, // is ECALL, EBREAK, or WFI
 };
-constexpr bool isJump(Opcode op) {
+constexpr bool isRandomJump(Opcode op) {
   switch (op) {
     using enum Opcode;
-  case JAL:
   case JALR:
   case ECALL:
   case EBREAK:
+  case SYSTEM_PRIV:
     return true;
   default:
     return false;
   }
 }
+constexpr bool isJump(Opcode op) {
+  return isRandomJump(op) || op == Opcode::JAL;
+}
+
 constexpr bool isBranch(Opcode op) {
   switch (op) {
     using enum Opcode;
@@ -82,4 +86,5 @@ constexpr bool isBranch(Opcode op) {
 constexpr bool changesControlFlow(Opcode op) {
   return isJump(op) || isBranch(op);
 }
+constexpr bool isDeterministicJump(Opcode op) { return !isRandomJump(op); }
 #endif
