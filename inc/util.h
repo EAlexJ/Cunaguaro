@@ -45,10 +45,12 @@ public:
   std::span<T> save_elements(std::span<T> elements) {
     if (chunks.empty())
       chunks.push_back(std::make_unique<chunk>());
-    auto &latest_chunk = chunks.back();
-    if (!((latest_chunk->mem.size() - latest_chunk->size) >= elements.size())) {
+
+    if (const auto &latest_chunk = chunks.back();
+        !((latest_chunk->mem.size() - latest_chunk->size) >= elements.size())) {
       chunks.push_back(std::make_unique<chunk>());
     }
+    const auto &latest_chunk = chunks.back();
     T *dest = latest_chunk->mem.data() + latest_chunk->size;
     std::memcpy(dest, elements.data(), elements.size_bytes());
     latest_chunk->size += elements.size();
