@@ -313,7 +313,8 @@ private:
     Opcode last_decoded = Opcode::ILLEGAL;
     status status = status::Ok;
 
-    while (!changesControlFlow(last_decoded)) {
+    while (!changesControlFlow(last_decoded) &&
+           running_idx < cur_blk_decoded.size()) {
       status = imem.template read<reg_t>(speculative_PC, speculated_instr);
       if (status == status::Error)
         throw std::runtime_error("Decoding read went wrong");
