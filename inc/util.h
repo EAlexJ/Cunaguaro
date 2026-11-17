@@ -3,11 +3,13 @@
 
 #include <array>
 #include <bitset>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <span>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -38,14 +40,16 @@ template <typename T> class chunked_allocator {
     std::array<T, 4096> mem;
     size_t size = 0;
   };
-  std::vector<std::unique_ptr<chunk>> chunks;
+  std::vector<std::unique_ptr<chunk>> chunks{[]() {
+    std::vector<std::unique_ptr<chunk>> vec;
+    vec.emplace_back(std::make_unique<chunk>());
+    return vec;
+  }()};
 
 public:
   [[nodiscard("Take the span, you don't know where the elements ended up")]]
   std::span<T> save_elements(std::span<T> elements) {
-    if (chunks.empty())
-      chunks.push_back(std::make_unique<chunk>());
-
+    assert(elements.size() <= std::tuple_size_v<decltype(chunk::mem)>);
     if (const auto &latest_chunk = chunks.back();
         !((latest_chunk->mem.size() - latest_chunk->size) >= elements.size())) {
       chunks.push_back(std::make_unique<chunk>());
