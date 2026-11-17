@@ -1,6 +1,7 @@
 #ifndef DECODER_H
 #define DECODER_H
 
+#include "decoder_telemetry.h"
 #include "general.h"
 #include "isa.h"
 #include "memory/memory.h"
@@ -289,6 +290,7 @@ private:
   cached_decoder::Decoder backing_dec;
 
   chunked_allocator<Opcode> backing;
+  [[no_unique_address]] DecoderTelemetry telemetry;
 
   struct BasicBlock {
     const reg_t PC;
@@ -320,6 +322,7 @@ private:
         throw std::runtime_error("Decoding read went wrong");
       last_decoded =
           backing_dec.cached_decode(speculative_PC, speculated_instr);
+      telemetry.on_decode();
       speculative_PC += instr_size;
       cur_blk_decoded[running_idx++] = last_decoded;
     }
@@ -329,6 +332,7 @@ private:
                        .decoded = backing.save_elements(
                            {cur_blk_decoded.begin(), running_idx}),
                        .fallthrough_pc = speculative_PC}));
+    telemetry.on_blocks_created();
     return &((*it.first).second);
   }
 
@@ -336,16 +340,19 @@ private:
     // fast lookup
     if (prev_block) {
       if (PC == prev_block->fallthrough_pc) {
-        if (prev_block->fallthrough)
+        if (prev_block->fallthrough) {
+          telemetry.on_fast_lookups();
           return prev_block->fallthrough;
+        }
       } else if (prev_block->taken) {
-        assert(PC != prev_block->fallthrough_pc);
+        telemetry.on_fast_lookups();
         return prev_block->taken;
       }
     }
 
     // Slow lookup
     if (auto elem = BasicBlocks.find(PC); elem != BasicBlocks.end()) {
+      telemetry.on_slow_lookups();
       return &((*elem).second);
     }
 
@@ -361,7 +368,7 @@ public:
       cur_block = get_cur_block(PC);
       cur_in_block_idx = 0;
 
-      // Stiching
+      // Stitching
       if (prev_block) {
         if (PC == prev_block->fallthrough_pc)
           prev_block->fallthrough = cur_block;
@@ -378,7 +385,7 @@ public:
         prev_block = cur_block;
       cur_block = nullptr;
     }
-
+    telemetry.on_retire();
     return decoded;
   }
 };

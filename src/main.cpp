@@ -13,6 +13,8 @@ int main(int argc, char *argv[]) {
     std::println("Requires path to binary as second argument");
     return 1;
   }
+  std::cout.imbue(std::locale("en_US.UTF-8"));
+
   std::filesystem::path path{argv[1]};
 
   SimulationCtx ctx{};
@@ -33,7 +35,7 @@ int main(int argc, char *argv[]) {
   double seconds = elapsed.count();
   double mips = (static_cast<double>(ctx.instr_count) / 1e6) / elapsed.count();
   std::println("\n--- Performance ---");
-  std::println("Instructions: {}", ctx.instr_count);
+  std::println(std::cout, "Instructions: {:L}", ctx.instr_count);
   std::println("Host Time:    {:8.4} s", seconds);
   std::println("Throughput:   {:.6} MIPS", mips);
 
