@@ -12,7 +12,7 @@ If docker is available, RISC-V Compliance and [riscv-tests](https://github.com/r
 
 Build the Simulator:
 ```
-cmake --preset Release && cmake --build --preset Release --parallel
+cmake --preset gcc-Release && cmake --build --preset gcc-Release --parallel
 ```
 
 The same applies to the 'hello_world' firmware.
@@ -33,7 +33,7 @@ In order to generate the self-testing RISC-V [architectural compliance tests](ht
 
 The ISS only implements basic argument parsing:
 ```
-./build/Release/cunaguaro-sim <ELF-file>
+./build/gcc/Release/cunaguaro <ELF-file>
 ```
 
 ## License
