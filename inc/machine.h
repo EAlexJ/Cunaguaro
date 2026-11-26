@@ -20,7 +20,7 @@ private:
     rv_traps::Traps trap = rv_traps::Traps::None;
     reg_t mtval{};
   } pending_trap;
-  void step();
+  inline void step();
 
 public:
   std::array<reg_t, 32> registers{};

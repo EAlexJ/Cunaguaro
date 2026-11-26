@@ -18,6 +18,7 @@ void MachineState::simulate() {
   }
 }
 
+[[gnu::always_inline]]
 void MachineState::step() {
 
   // Fetch
