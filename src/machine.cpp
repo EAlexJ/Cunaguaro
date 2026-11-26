@@ -2,7 +2,6 @@
 #include "decoder.h"
 #include "instructions.h"
 #include "traps.h"
-using decoder = lut_decoder::Decoder;
 
 void MachineState::simulate() {
   while (!ctx.should_exit) {
@@ -38,7 +37,7 @@ void MachineState::step() {
   }
 
   // Decode
-  auto idx = decoder.decode(PC);
+  auto idx = decoder.cached_decode(PC, instr_word);
   [[unlikely]]
   if (idx == Opcode::ILLEGAL) {
     trap(rv_traps::Traps::Illegal_instruction);

@@ -27,10 +27,10 @@ public:
   reg_t PC{};
   SimulationCtx &ctx;
   HtifProxy<MMIOProxy<mem_t &>> mem;
-  basic_block_decoder::Decoder<mem_t> decoder;
+  cached_decoder::Decoder decoder;
   SwitchCaseCSRs<reg_t> csrs{};
   explicit MachineState(SimulationCtx &ctx_)
-      : ctx(ctx_), mem(ctx, mem_target), decoder(mem_target) {};
+      : ctx(ctx_), mem(ctx, mem_target) {};
 
   void simulate();
   void request_stop(int code) {
