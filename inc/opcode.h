@@ -1,7 +1,7 @@
 #ifndef OPCODE_H
 #define OPCODE_H
-// TODO: set backing value to a byte to see perf impact
-enum class Opcode {
+#include <cstdint>
+enum class Opcode : std::uint8_t {
   LUI,
   AUIPC,
   JAL,

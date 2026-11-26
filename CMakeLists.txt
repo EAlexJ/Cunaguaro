@@ -20,4 +20,5 @@ target_compile_options(cunaguaro
     -Wunused
     -Woverloaded-virtual
     -Werror
+    -march=native
 )
